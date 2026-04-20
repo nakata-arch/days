@@ -14,6 +14,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { QuotePopup } from "@/components/QuotePopup";
 import { PREVIEW_EVENTS } from "@/lib/preview-data";
+import { patchQuadrantColor } from "@/lib/calendar-writeback";
 import Link from "next/link";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -231,6 +232,9 @@ export default function ClassifyPage() {
         new FirestorePermissionError({ path: eventDoc.path, operation: "update" })
       );
     });
+
+    // Google Calendar 側の色を書き戻し（fire-and-forget）
+    patchQuadrantColor(event.googleEventId || event.id, category);
   };
 
   if (isUserLoading) {

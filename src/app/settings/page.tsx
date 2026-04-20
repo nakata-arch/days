@@ -24,8 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { isBefore, parseISO } from "date-fns";
-
-const CALENDAR_TOKEN_KEY = "days:calendarAccessToken";
+import { CALENDAR_TOKEN_KEY } from "@/lib/calendar-writeback";
 
 export default function SettingsPage() {
   const router = useRouter();

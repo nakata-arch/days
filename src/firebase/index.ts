@@ -46,8 +46,10 @@ export const auth = sdk.auth;
 export const firestore = sdk.firestore;
 
 // Export Google Auth Provider with necessary scopes for Google Calendar
+// calendar.events は分類カラー変更・報告タグの書き戻し用に必須
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope("https://www.googleapis.com/auth/calendar.readonly");
+googleProvider.addScope("https://www.googleapis.com/auth/calendar.events");
 googleProvider.setCustomParameters({
   prompt: "select_account",
 });

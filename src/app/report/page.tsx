@@ -37,6 +37,7 @@ import { format, parseISO, isBefore } from "date-fns";
 import { ja } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { PREVIEW_EVENTS } from "@/lib/preview-data";
+import { patchReportDescription } from "@/lib/calendar-writeback";
 import { QuotePopup } from "@/components/QuotePopup";
 import Link from "next/link";
 import {
@@ -336,6 +337,13 @@ export default function ReportPage() {
       console.error("ReportPage: save-error", err);
       toast({ variant: "destructive", title: "保存に失敗しました", description: err.message });
     });
+
+    // Google Calendar の説明欄にタグを書き戻し（fire-and-forget）
+    patchReportDescription(
+      eventToUpdate.googleEventId || eventToUpdate.id,
+      status,
+      eventToUpdate.description
+    );
   };
 
   if (isUserLoading) {
