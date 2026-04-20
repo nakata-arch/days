@@ -1,0 +1,20 @@
+{
+  "name": "DAYS - Time Management Coach",
+  "short_name": "DAYS",
+  "description": "予定を振り返り、時間の使い方を優しく整える場所。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EEF0F6",
+  "theme_color": "#3362CC",
+  "orientation": "portrait",
+  "lang": "ja",
+  "categories": ["productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}

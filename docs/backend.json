@@ -1,0 +1,230 @@
+
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the DAYS application, storing their profile information and app-specific settings.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name, typically from their Google account."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, typically from their Google account.",
+          "format": "email"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL to the user's profile photo, typically from their Google account.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user account was first created in the application.",
+          "format": "date-time"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "description": "Timestamp of the user's most recent login to the application.",
+          "format": "date-time"
+        },
+        "streakCount": {
+          "type": "number",
+          "description": "The number of consecutive days the user has engaged with the application."
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "Event": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Event",
+      "type": "object",
+      "description": "Represents a scheduled event, imported from Google Calendar, including app-specific classifications and reporting statuses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Event entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who owns this event."
+        },
+        "googleEventId": {
+          "type": "string",
+          "description": "The unique identifier of the event as provided by Google Calendar."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or name of the event."
+        },
+        "startAt": {
+          "type": "string",
+          "description": "The start date and time of the event.",
+          "format": "date-time"
+        },
+        "endAt": {
+          "type": "string",
+          "description": "The end date and time of the event.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description or notes for the event."
+        },
+        "calendarId": {
+          "type": "string",
+          "description": "The unique identifier of the Google Calendar this event belongs to."
+        },
+        "calendarName": {
+          "type": "string",
+          "description": "The display name of the Google Calendar this event belongs to."
+        },
+        "quadrantCategory": {
+          "type": "string",
+          "description": "The classification of the event into one of the four quadrants: urgent_important, not_urgent_important, urgent_not_important, not_urgent_not_important."
+        },
+        "reportStatus": {
+          "type": "string",
+          "description": "The status of a past event: 'done' (completed), 'failed' (not completed), or 'cancelled'."
+        },
+        "reportMemo": {
+          "type": "string",
+          "description": "A personal memo or reflection written by the user about a past event."
+        },
+        "syncStatus": {
+          "type": "string",
+          "description": "The current synchronization status of the event with Google Calendar."
+        },
+        "lastSyncedAt": {
+          "type": "number",
+          "description": "Timestamp of the last successful synchronization."
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp when the event record was first created."
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Timestamp of the last modification."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "googleEventId",
+        "title",
+        "startAt",
+        "endAt"
+      ]
+    },
+    "Summary": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Summary",
+      "type": "object",
+      "description": "Stores periodic summaries of user activities and statistics, supporting daily, weekly, monthly, and yearly reports.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Summary entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User this summary belongs to."
+        },
+        "summaryType": {
+          "type": "string",
+          "description": "The type of summary, e.g., 'daily', 'weekly', 'monthly', or 'yearly'."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the period covered by this summary.",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the period covered by this summary.",
+          "format": "date"
+        },
+        "summaryText": {
+          "type": "string",
+          "description": "A personalized reflection or memo written by the user for the summarized period."
+        },
+        "totalEventsCount": {
+          "type": "number",
+          "description": "The total number of events recorded within the summary period."
+        },
+        "doneCount": {
+          "type": "number",
+          "description": "Count of past events marked as 'done'."
+        },
+        "failedCount": {
+          "type": "number",
+          "description": "Count of past events marked as 'failed'."
+        },
+        "cancelledCount": {
+          "type": "number",
+          "description": "Count of past events marked as 'cancelled'."
+        },
+        "updatedAt": {
+          "type": "object",
+          "description": "Firebase server timestamp for last update."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "summaryType",
+        "startDate",
+        "endDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "google.com"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Private user profile and settings."
+        }
+      },
+      {
+        "path": "/users/{userId}/events/{eventId}",
+        "definition": {
+          "entityName": "Event",
+          "schema": {
+            "$ref": "#/backend/entities/Event"
+          },
+          "description": "User specific calendar events."
+        }
+      },
+      {
+        "path": "/users/{userId}/summaries/{summaryId}",
+        "definition": {
+          "entityName": "Summary",
+          "schema": {
+            "$ref": "#/backend/entities/Summary"
+          },
+          "description": "Daily, weekly, monthly, or yearly summaries."
+        }
+      }
+    ]
+  }
+}
