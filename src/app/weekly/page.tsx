@@ -151,29 +151,82 @@ export default function DiaryPage() {
   };
 
   const startRecording = async () => {
+    if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      toast({
+        variant: 'destructive',
+        title: '録音できません',
+        description: 'このブラウザは録音に対応していません。Safari や Chrome の最新版でお試しください。',
+      });
+      return;
+    }
+    if (typeof MediaRecorder === 'undefined') {
+      toast({
+        variant: 'destructive',
+        title: '録音できません',
+        description: 'このブラウザは MediaRecorder に未対応です。',
+      });
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+
+      // ブラウザがサポートする mimeType を自動選択（iOS Safari は audio/webm 非対応）
+      const candidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4;codecs=mp4a.40.2',
+        'audio/mp4',
+        'audio/aac',
+        'audio/ogg;codecs=opus',
+      ];
+      const supported = candidates.find((t) => MediaRecorder.isTypeSupported(t));
+      const mediaRecorder = supported ? new MediaRecorder(stream, { mimeType: supported }) : new MediaRecorder(stream);
+      const recordedType = mediaRecorder.mimeType || supported || 'audio/webm';
+
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
+
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
+      mediaRecorder.onerror = (e: any) => {
+        console.error('MediaRecorder error:', e.error || e);
+        toast({
+          variant: 'destructive',
+          title: '録音エラー',
+          description: String(e.error?.message || e.error || 'unknown'),
+        });
+      };
       mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: recordedType });
+        if (blob.size === 0) {
+          toast({ variant: 'destructive', title: '録音エラー', description: '音声を取得できませんでした。' });
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         const reader = new FileReader();
-        reader.readAsDataURL(blob);
         reader.onloadend = async () => {
           const base64Audio = reader.result as string;
           handleRefine(base64Audio);
         };
-        stream.getTracks().forEach(track => track.stop());
+        reader.onerror = () => {
+          toast({ variant: 'destructive', title: '録音エラー', description: '音声の読み取りに失敗しました。' });
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach((t) => t.stop());
       };
       mediaRecorder.start();
       setIsRecording(true);
-    } catch (err) {
-      console.error("Failed to start recording:", err);
-      toast({ variant: "destructive", title: "録音エラー", description: "マイクの使用を許可してください。" });
+    } catch (err: any) {
+      console.error('Failed to start recording:', err);
+      const msg =
+        err?.name === 'NotAllowedError'
+          ? 'マイクへのアクセスが拒否されました。ブラウザの設定で許可してください。'
+          : err?.name === 'NotFoundError'
+            ? 'マイクが見つかりません。デバイスを確認してください。'
+            : err?.message || 'マイクを起動できませんでした。';
+      toast({ variant: 'destructive', title: '録音エラー', description: msg });
     }
   };
 
