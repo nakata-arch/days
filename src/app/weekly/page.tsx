@@ -82,6 +82,9 @@ export default function DiaryPage() {
   const [isRefining, setIsRefining] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  // Web Speech API 用
+  const recognitionRef = useRef<any>(null);
+  const transcriptBufferRef = useRef<string>("");
 
   // 全予定の取得
   const eventsQuery = useMemoFirebase(() => {
@@ -150,20 +153,68 @@ export default function DiaryPage() {
     }
   };
 
-  const startRecording = async () => {
-    if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+  const startSpeechRecognition = (SR: any) => {
+    try {
+      const recognition = new SR();
+      recognition.lang = "ja-JP";
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      transcriptBufferRef.current = "";
+
+      recognition.onresult = (event: any) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            transcriptBufferRef.current += event.results[i][0].transcript;
+          }
+        }
+      };
+      recognition.onerror = (event: any) => {
+        console.error("SpeechRecognition error:", event.error);
+        setIsRecording(false);
+        if (event.error === "aborted") return;
+        const msg =
+          event.error === "not-allowed" || event.error === "service-not-allowed"
+            ? "マイクへのアクセスが拒否されました。ブラウザ設定で許可してください。"
+            : event.error === "no-speech"
+              ? "音声が検出されませんでした。"
+              : event.error === "network"
+                ? "ネットワークエラーで音声認識に失敗しました。"
+                : `エラー: ${event.error}`;
+        toast({ variant: "destructive", title: "音声認識エラー", description: msg });
+      };
+      recognition.onend = () => {
+        setIsRecording(false);
+        const text = transcriptBufferRef.current.trim();
+        if (text) {
+          setDailyMemo((prev) => (prev ? prev + "\n" + text : text));
+          toast({ title: "聞き取りました", description: "日記に追記しました。" });
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsRecording(true);
+    } catch (e: any) {
+      console.error("startSpeechRecognition error:", e);
+      toast({ variant: "destructive", title: "録音エラー", description: e?.message || "音声認識を起動できませんでした。" });
+      setIsRecording(false);
+    }
+  };
+
+  const startMediaRecording = async () => {
+    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       toast({
-        variant: 'destructive',
-        title: '録音できません',
-        description: 'このブラウザは録音に対応していません。Safari や Chrome の最新版でお試しください。',
+        variant: "destructive",
+        title: "録音できません",
+        description: "このブラウザは録音に対応していません。Safari や Chrome の最新版でお試しください。",
       });
       return;
     }
-    if (typeof MediaRecorder === 'undefined') {
+    if (typeof MediaRecorder === "undefined") {
       toast({
-        variant: 'destructive',
-        title: '録音できません',
-        description: 'このブラウザは MediaRecorder に未対応です。',
+        variant: "destructive",
+        title: "録音できません",
+        description: "このブラウザは MediaRecorder に未対応です。",
       });
       return;
     }
@@ -230,7 +281,29 @@ export default function DiaryPage() {
     }
   };
 
+  const startRecording = async () => {
+    if (typeof window === "undefined") return;
+    // Web Speech API が使える環境（Android Chrome など）では優先
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SR) {
+      startSpeechRecognition(SR);
+      return;
+    }
+    // フォールバック: MediaRecorder + Gemini 音声認識（iOS Safari など）
+    await startMediaRecording();
+  };
+
   const stopRecording = () => {
+    // Speech API 経由の場合
+    if (recognitionRef.current && isRecording) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.warn("stopRecording speech error:", e);
+      }
+      return;
+    }
+    // MediaRecorder 経由の場合
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
