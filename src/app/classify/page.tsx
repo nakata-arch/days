@@ -159,6 +159,7 @@ export default function ClassifyPage() {
   const [recentClassified, setRecentClassified] = useState<AppEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [exitDirection, setExitDirection] = useState<ExitDirection>({ x: 0, y: 0 });
+  const [debug, setDebug] = useState<{ total: number; future: number }>({ total: 0, future: 0 });
 
   const fetchEvents = async () => {
     if (!user) {
@@ -186,16 +187,18 @@ export default function ClassifyPage() {
       const snapAll = await getDocs(qAll);
       const all = snapAll.docs.map((d) => d.data() as AppEvent).filter((e) => !e.deleted);
 
-      // 分類対象は「今日以降」の未分類のみ。過去の未分類は report に回す。
-      const unclassified = all.filter((ev) => {
-        if (ev.quadrantCategory) return false;
+      const futureEvents = all.filter((e) => {
         try {
-          return !isBefore(parseISO(ev.startAt), today);
+          return !isBefore(parseISO(e.startAt), today);
         } catch {
           return false;
         }
       });
+
+      // 分類対象は「今日以降」の未分類のみ。過去の未分類は report に回す。
+      const unclassified = futureEvents.filter((ev) => !ev.quadrantCategory);
       setEvents(unclassified);
+      setDebug({ total: all.length, future: futureEvents.length });
 
       const qRecent = query(eventsRef, orderBy("updatedAt", "desc"), limit(30));
       const snapRecent = await getDocs(qRecent);
@@ -310,6 +313,11 @@ export default function ClassifyPage() {
               >
                 設定 → カレンダーを同期
               </Link>
+
+              <div className="pt-8 space-y-1 font-sans text-[10px] text-ink-faint tracking-[0.1em]">
+                <p>取り込み済み: 合計 {debug.total} 件</p>
+                <p>今日以降の予定: {debug.future} 件</p>
+              </div>
             </div>
 
             {recentClassified.length > 0 && (

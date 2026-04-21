@@ -14,13 +14,13 @@ export default function LandingPage() {
   const [redirecting, setRedirecting] = useState(false);
 
   const resolvePostLoginRoute = useCallback(
-    async (uid: string): Promise<"/setup" | "/settings"> => {
-      if (isPreviewMode) return "/settings";
+    async (uid: string): Promise<"/setup" | "/today"> => {
+      if (isPreviewMode) return "/today";
       try {
         const missionSnap = await getDoc(doc(db, "users", uid, "mission", "current"));
-        return missionSnap.exists() ? "/settings" : "/setup";
+        return missionSnap.exists() ? "/today" : "/setup";
       } catch {
-        return "/settings";
+        return "/today";
       }
     },
     [db, isPreviewMode]

@@ -21,17 +21,17 @@ export default function HomePage() {
     }
 
     if (isPreviewMode) {
-      router.replace("/settings");
+      router.replace("/today");
       return;
     }
 
     (async () => {
       try {
         const missionSnap = await getDoc(doc(db, "users", user.uid, "mission", "current"));
-        router.replace(missionSnap.exists() ? "/settings" : "/setup");
+        router.replace(missionSnap.exists() ? "/today" : "/setup");
       } catch (e) {
         console.error("home: mission check error", e);
-        router.replace("/settings");
+        router.replace("/today");
       }
     })();
   }, [router, user, isUserLoading, isPreviewMode, db]);

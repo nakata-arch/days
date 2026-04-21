@@ -16,14 +16,14 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const resolvePostLoginRoute = useCallback(
-    async (uid: string): Promise<"/setup" | "/settings"> => {
-      if (isPreviewMode) return "/settings";
+    async (uid: string): Promise<"/setup" | "/today"> => {
+      if (isPreviewMode) return "/today";
       try {
         const missionSnap = await getDoc(doc(db, "users", uid, "mission", "current"));
-        return missionSnap.exists() ? "/settings" : "/setup";
+        return missionSnap.exists() ? "/today" : "/setup";
       } catch (e) {
         console.error("LoginPage: mission check error", e);
-        return "/settings";
+        return "/today";
       }
     },
     [db, isPreviewMode]
@@ -61,7 +61,7 @@ export default function LoginPage() {
     setLoading(true);
     loginAsMockUser();
     setTimeout(() => {
-      router.replace("/settings");
+      router.replace("/today");
     }, 100);
   };
 

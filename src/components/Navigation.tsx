@@ -3,16 +3,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, ListTodo, ClipboardCheck, Settings } from "lucide-react";
+import { BarChart3, Sun, MessageCircle, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navigation() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: "/report", label: "報告", icon: ClipboardCheck },
-    { href: "/classify", label: "分類", icon: ListTodo },
+    { href: "/today", label: "今日", icon: Sun },
     { href: "/review", label: "レビュー", icon: BarChart3 },
+    { href: "/dialogue", label: "対話", icon: MessageCircle },
     { href: "/settings", label: "設定", icon: Settings },
   ];
 

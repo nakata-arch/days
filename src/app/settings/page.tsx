@@ -23,7 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { isBefore, parseISO } from "date-fns";
+import { isBefore, parseISO, startOfToday } from "date-fns";
 import { CALENDAR_TOKEN_KEY } from "@/lib/calendar-writeback";
 
 export default function SettingsPage() {
@@ -45,8 +45,10 @@ export default function SettingsPage() {
   const counts = useMemo(() => {
     if (!allEventsData) return { report: 0, classify: 0 };
     const now = new Date();
+    const today = startOfToday();
     const filtered = allEventsData.filter((e) => !e.deleted);
     return {
+      // 未報告 = 過去の予定で reportStatus 未設定
       report: filtered.filter((e) => {
         if (e.reportStatus) return false;
         try {
@@ -55,7 +57,15 @@ export default function SettingsPage() {
           return false;
         }
       }).length,
-      classify: filtered.filter((e) => !e.quadrantCategory).length,
+      // 未分類 = 今日以降の予定で quadrantCategory 未設定（page と同じ基準）
+      classify: filtered.filter((e) => {
+        if (e.quadrantCategory) return false;
+        try {
+          return !isBefore(parseISO(e.startAt), today);
+        } catch {
+          return false;
+        }
+      }).length,
     };
   }, [allEventsData]);
 
