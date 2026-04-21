@@ -527,7 +527,7 @@ export default function DiaryPage() {
           <p className="text-[10px] uppercase tracking-widest">Please sign in to write diary</p>
         </div>
         <Button asChild className="rounded-full px-8 gap-2 font-bold">
-          <Link href="/"><LogIn className="h-4 w-4" /> ログイン画面へ</Link>
+          <Link href="/login"><LogIn className="h-4 w-4" /> ログイン画面へ</Link>
         </Button>
       </div>
     );

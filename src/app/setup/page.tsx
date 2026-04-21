@@ -142,7 +142,7 @@ export default function SetupPage() {
         <Compass className="h-12 w-12 mx-auto opacity-20" />
         <p className="text-sm font-bold">ログインが必要です</p>
         <Button asChild className="rounded-full px-8 gap-2 font-bold">
-          <Link href="/">
+          <Link href="/login">
             <LogIn className="h-4 w-4" /> ログイン画面へ
           </Link>
         </Button>
