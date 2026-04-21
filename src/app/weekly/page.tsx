@@ -478,9 +478,19 @@ export default function DiaryPage() {
         importantFocusPct: bFocus.bPct,
         userComment: periodUserComment,
       });
-      setReportResult(result);
+
+      if (result.ok) {
+        setReportResult(result.data);
+      } else {
+        console.error('weekly:report-generate-error', result.error);
+        toast({
+          variant: 'destructive',
+          title: 'レポート生成に失敗しました',
+          description: result.error,
+        });
+      }
     } catch (err: any) {
-      console.error('weekly:report-generate-error', err);
+      console.error('weekly:report-generate-unexpected', err);
       toast({
         variant: 'destructive',
         title: 'レポート生成に失敗しました',

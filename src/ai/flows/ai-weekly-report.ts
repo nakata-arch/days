@@ -46,8 +46,26 @@ const WeeklyReportOutputSchema = z.object({
 });
 export type WeeklyReportOutput = z.infer<typeof WeeklyReportOutputSchema>;
 
-export async function aiWeeklyReport(input: WeeklyReportInput): Promise<WeeklyReportOutput> {
-  return aiWeeklyReportFlow(input);
+export type AiWeeklyReportResult =
+  | { ok: true; data: WeeklyReportOutput }
+  | { ok: false; error: string };
+
+/**
+ * サーバーアクション経由で呼び出される関数。
+ * エラーを throw せずに { ok: false, error } として返すことで、
+ * Next.js 本番ビルドのエラーマスキングを回避し、クライアントに詳細を届ける。
+ */
+export async function aiWeeklyReport(
+  input: WeeklyReportInput
+): Promise<AiWeeklyReportResult> {
+  try {
+    const data = await aiWeeklyReportFlow(input);
+    return { ok: true, data };
+  } catch (err: any) {
+    const message = err?.message || String(err) || "unknown error";
+    console.error("aiWeeklyReport failed:", message, err?.stack);
+    return { ok: false, error: message };
+  }
 }
 
 const weeklyReportPrompt = ai.definePrompt({
