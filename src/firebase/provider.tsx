@@ -97,11 +97,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         hostname === "studio.firebase.google.com";
       
       setIsPreviewMode(isStudioPreview);
-      console.log("FirebaseProvider: Environment check", { hostname, isStudioPreview });
 
       // セッションストレージからモックログイン状態を復元
       if (isStudioPreview && sessionStorage.getItem('isMockLoggedIn') === 'true') {
-        console.log("FirebaseProvider: Restoring mock user session");
         setMockUser(DUMMY_USER);
         setUserAuthState({ user: DUMMY_USER, isUserLoading: false, userError: null });
       }
@@ -118,7 +116,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
-        console.log("FirebaseProvider: onAuthStateChanged", { uid: firebaseUser?.uid });
         // モックセッション中でない場合のみSDK側のステートを優先
         if (!sessionStorage.getItem('isMockLoggedIn')) {
           setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
@@ -137,7 +134,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const loginAsMockUser = () => {
     // プレビュー環境でのみモックログインを許可
     if (isPreviewMode) {
-      console.log("FirebaseProvider: Manual mock login triggered");
       setMockUser(DUMMY_USER);
       sessionStorage.setItem('isMockLoggedIn', 'true');
       setUserAuthState({ user: DUMMY_USER, isUserLoading: false, userError: null });

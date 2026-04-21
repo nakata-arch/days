@@ -65,7 +65,6 @@ export function useCollection<T = any>(
 
     // Bypass Firestore if we are in Mock User session (Preview Mode)
     if (user?.uid === DUMMY_USER_ID) {
-      console.log("useCollection:mock-mode", { path: memoizedTargetRefOrQuery.type });
       // Return predefined events if looking for events
       if (memoizedTargetRefOrQuery instanceof CollectionReference || (memoizedTargetRefOrQuery as any)._query) {
         setData(PREVIEW_EVENTS as any);

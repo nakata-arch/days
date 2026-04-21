@@ -13,7 +13,6 @@ export default function HomePage() {
   const { user, isUserLoading, isPreviewMode } = useUser();
 
   useEffect(() => {
-    console.log("home:init", { isUserLoading, hasUser: !!user });
     if (isUserLoading) return;
 
     if (!user) {

@@ -50,7 +50,6 @@ export function useDoc<T = any>(
 
     // Bypass Firestore if we are in Mock User session (Preview Mode)
     if (user?.uid === DUMMY_USER_ID) {
-      console.log("useDoc:mock-mode", { path: memoizedDocRef.path });
       // Find matching mock summary or event
       const mockSummary = PREVIEW_SUMMARIES.find(s => memoizedDocRef.path.includes(s.id));
       const mockEvent = PREVIEW_EVENTS.find(e => memoizedDocRef.path.includes(e.id));

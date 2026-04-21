@@ -8,7 +8,7 @@ import { Navigation } from "@/components/Navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { QUADRANTS } from "@/lib/mock-data";
 import { Loader2, Clock, History, LayoutGrid, Sparkles, LogIn } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfToday, isBefore } from "date-fns";
 import { ja } from "date-fns/locale";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -161,16 +161,20 @@ export default function ClassifyPage() {
   const [exitDirection, setExitDirection] = useState<ExitDirection>({ x: 0, y: 0 });
 
   const fetchEvents = async () => {
-    console.log("classify:fetch-start");
     if (!user) {
-      console.log("classify:fetch-abort (no user)");
       setLoading(false);
       return;
     }
 
+    const today = startOfToday();
+
     if (user.uid === DUMMY_USER_ID) {
-      console.log("classify:fetch-mock");
-      setEvents(PREVIEW_EVENTS.filter((e) => !e.quadrantCategory));
+      // プレビュー: 今日以降かつ未分類
+      setEvents(
+        PREVIEW_EVENTS.filter(
+          (e) => !e.quadrantCategory && !isBefore(parseISO(e.startAt), today)
+        )
+      );
       setRecentClassified(PREVIEW_EVENTS.filter((e) => !!e.quadrantCategory));
       setLoading(false);
       return;
@@ -180,9 +184,17 @@ export default function ClassifyPage() {
       const eventsRef = collection(db, "users", user.uid, "events");
       const qAll = query(eventsRef, orderBy("startAt", "asc"));
       const snapAll = await getDocs(qAll);
-      const all = snapAll.docs.map((d) => d.data() as AppEvent);
+      const all = snapAll.docs.map((d) => d.data() as AppEvent).filter((e) => !e.deleted);
 
-      const unclassified = all.filter((ev) => !ev.quadrantCategory);
+      // 分類対象は「今日以降」の未分類のみ。過去の未分類は report に回す。
+      const unclassified = all.filter((ev) => {
+        if (ev.quadrantCategory) return false;
+        try {
+          return !isBefore(parseISO(ev.startAt), today);
+        } catch {
+          return false;
+        }
+      });
       setEvents(unclassified);
 
       const qRecent = query(eventsRef, orderBy("updatedAt", "desc"), limit(30));
@@ -192,7 +204,6 @@ export default function ClassifyPage() {
           .map((d) => d.data() as AppEvent)
           .filter((ev) => !!ev.quadrantCategory)
       );
-      console.log(`classify:fetch-done (unclassified: ${unclassified.length})`);
     } catch (err: any) {
       console.error("classify:error", err);
       errorEmitter.emit(
@@ -205,7 +216,6 @@ export default function ClassifyPage() {
   };
 
   useEffect(() => {
-    console.log("classify:init", { isUserLoading, hasUser: !!user });
     if (!isUserLoading) {
       fetchEvents();
     }
