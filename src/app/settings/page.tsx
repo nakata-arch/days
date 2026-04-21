@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useAuth, useUser, useFirestore, googleProvider } from "@/firebase";
+import { useState, useCallback, useMemo } from "react";
+import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase, googleProvider } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { doc, setDoc, collection, getDocs } from "firebase/firestore";
+import { doc, setDoc, collection, query } from "firebase/firestore";
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { AppEvent } from "@/lib/types";
@@ -34,30 +34,30 @@ export default function SettingsPage() {
   const { toast } = useToast();
 
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "saving" | "success" | "failed">("idle");
-  const [counts, setCounts] = useState({ report: 0, classify: 0 });
-  const [isCountsLoading, setIsCountsLoading] = useState(false);
 
-  const fetchCounts = useCallback(async () => {
-    if (!user) return;
-    setIsCountsLoading(true);
-    try {
-      const eventsRef = collection(db, "users", user.uid, "events");
-      const snap = await getDocs(eventsRef);
-      const now = new Date();
-      const all = snap.docs
-        .map((d) => d.data() as AppEvent)
-        .filter((e) => !e.deleted);
-
-      setCounts({
-        report: all.filter((e) => !e.reportStatus && isBefore(parseISO(e.startAt), now)).length,
-        classify: all.filter((e) => !e.quadrantCategory).length,
-      });
-    } catch (e: any) {
-      console.error("SettingsPage: fetch counts failed (likely permission error)", e);
-    } finally {
-      setIsCountsLoading(false);
-    }
+  // Firestoreから予定をリアルタイム購読（件数が即時反映される）
+  const eventsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(db, "users", user.uid, "events"));
   }, [user, db]);
+  const { data: allEventsData, isLoading: isCountsLoading } = useCollection<AppEvent>(eventsQuery);
+
+  const counts = useMemo(() => {
+    if (!allEventsData) return { report: 0, classify: 0 };
+    const now = new Date();
+    const filtered = allEventsData.filter((e) => !e.deleted);
+    return {
+      report: filtered.filter((e) => {
+        if (e.reportStatus) return false;
+        try {
+          return isBefore(parseISO(e.startAt), now);
+        } catch {
+          return false;
+        }
+      }).length,
+      classify: filtered.filter((e) => !e.quadrantCategory).length,
+    };
+  }, [allEventsData]);
 
   const processSync = useCallback(
     async (accessToken: string) => {
@@ -121,7 +121,6 @@ export default function SettingsPage() {
 
         setSyncStatus("success");
         toast({ title: "同期完了", description: `${items.length}件の予定を同期しました（最大100件）。` });
-        await fetchCounts();
         setTimeout(() => setSyncStatus("idle"), 3000);
       } catch (err: any) {
         console.error("SettingsPage: sync process error", err);
@@ -177,14 +176,8 @@ export default function SettingsPage() {
         }
       }
     },
-    [user, db, toast, fetchCounts, auth]
+    [user, db, toast, auth]
   );
-
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      fetchCounts();
-    }
-  }, [user, isUserLoading, fetchCounts]);
 
   const handleSyncTrigger = async () => {
     if (!user) return;

@@ -36,17 +36,19 @@ import {
   isWithinInterval,
   parseISO,
   isSameDay,
+  isBefore,
   addDays,
   subDays,
   startOfDay,
   endOfDay,
 } from "date-fns";
 import { ja } from "date-fns/locale";
-import { aiWeeklyPraiseFeedback, type PraiseFeedbackOutput } from "@/ai/flows/ai-weekly-praise-feedback";
+import { aiWeeklyReport, type WeeklyReportOutput } from "@/ai/flows/ai-weekly-report";
 import { refineReflection } from "@/ai/flows/ai-refine-reflection";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { QUADRANTS } from "@/lib/mock-data";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -65,8 +67,8 @@ export default function DiaryPage() {
   const [mainTab, setMainTab] = useState<MainTabType>('diary');
   const [subTab, setSubTab] = useState<SubTabType>('weekly');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [praiseResult, setPraiseResult] = useState<PraiseFeedbackOutput | null>(null);
-  const [isPraiseLoading, setIsPraiseLoading] = useState(false);
+  const [reportResult, setReportResult] = useState<WeeklyReportOutput | null>(null);
+  const [isReportLoading, setIsReportLoading] = useState(false);
   const [dailyMemo, setDailyMemo] = useState("");
   const [isSavingMemo, setIsSavingMemo] = useState(false);
 
@@ -399,10 +401,32 @@ export default function DiaryPage() {
     };
   }, [periodEvents]);
 
-  // 期間が変わったら励ましフィードバックをリセット（再生成はユーザー操作）
+  // 期間が変わったらレポートをリセット（再生成はユーザー操作）
   useEffect(() => {
-    setPraiseResult(null);
+    setReportResult(null);
   }, [mainTab, subTab, selectedDate, customStart, customEnd]);
+
+  // B象限集計（重要×非緊急）
+  const bFocus = useMemo(() => {
+    const bEvents = periodEvents.filter((e) => e.quadrantCategory === 'not_urgent_important');
+    const bTotal = bEvents.length;
+    const bDone = bEvents.filter((e) => e.reportStatus === 'done').length;
+    const bPct = bTotal > 0 ? Math.round((bDone / bTotal) * 100) : 0;
+    return { bTotal, bDone, bPct };
+  }, [periodEvents]);
+
+  // 期間内で過去なのに未報告のまま残っている件数
+  const unreportedCount = useMemo(() => {
+    const now = new Date();
+    return periodEvents.filter((e) => {
+      if (e.reportStatus) return false;
+      try {
+        return isBefore(parseISO(e.startAt), now);
+      } catch {
+        return false;
+      }
+    }).length;
+  }, [periodEvents]);
 
   // 期間内の日記メモを連結
   const periodUserComment = useMemo(() => {
@@ -423,43 +447,47 @@ export default function DiaryPage() {
       .join('\n---\n');
   }, [allDailySummaries, mainTab, subTab, selectedDate, customStart, customEnd]);
 
-  const handleGeneratePraise = async () => {
+  const handleGenerateReport = async () => {
     if (!user) return;
 
-    setIsPraiseLoading(true);
+    setIsReportLoading(true);
     try {
       const { periodLabel, nextPeriodLabel } = getPeriodLabels(subTab, selectedDate);
-      const total = periodEvents.length;
       const quad = {
         a: periodEvents.filter((e) => e.quadrantCategory === 'urgent_important').length,
         b: periodEvents.filter((e) => e.quadrantCategory === 'not_urgent_important').length,
         c: periodEvents.filter((e) => e.quadrantCategory === 'urgent_not_important').length,
         d: periodEvents.filter((e) => e.quadrantCategory === 'not_urgent_not_important').length,
       };
-      const pct = (n: number) => (total === 0 ? 0 : Math.round((n / total) * 100));
 
-      const result = await aiWeeklyPraiseFeedback({
+      const result = await aiWeeklyReport({
         mission: {
           roles: missionDoc?.roles?.map((r) => ({ name: r.name, goal: r.goal })) ?? [],
           weeklyFocus: missionDoc?.weeklyFocus ?? '',
         },
         periodLabel,
         nextPeriodLabel,
-        quadrantPercents: { a: pct(quad.a), b: pct(quad.b), c: pct(quad.c), d: pct(quad.d) },
+        totalEvents: periodEvents.length,
         doneCount: stats.done,
-        notDoneCount: stats.failed + stats.cancelled,
+        failedCount: stats.failed,
+        deferredCount: stats.deferred,
+        unreportedCount,
+        quadrantCounts: quad,
+        bDoneCount: bFocus.bDone,
+        bTotalCount: bFocus.bTotal,
+        importantFocusPct: bFocus.bPct,
         userComment: periodUserComment,
       });
-      setPraiseResult(result);
-    } catch (err) {
-      console.error('weekly:praise-generate-error', err);
+      setReportResult(result);
+    } catch (err: any) {
+      console.error('weekly:report-generate-error', err);
       toast({
         variant: 'destructive',
-        title: '生成に失敗しました',
-        description: '通信環境を確認してから再度お試しください。',
+        title: 'レポート生成に失敗しました',
+        description: err?.message || '通信環境を確認してから再度お試しください。',
       });
     } finally {
-      setIsPraiseLoading(false);
+      setIsReportLoading(false);
     }
   };
 
@@ -730,17 +758,58 @@ export default function DiaryPage() {
               </Card>
             )}
 
-            {/* 今期のあなたへ（AI励まし） */}
+            {/* 重要な時間への集中度（B象限の処理度） */}
+            <Card className="border-none shadow-sm bg-white rounded-[2rem] overflow-hidden">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-primary/50">
+                    <span className="text-base">🌿</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">重要な時間への集中度</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-muted-foreground/60">
+                    {bFocus.bTotal > 0 ? `${bFocus.bDone} / ${bFocus.bTotal} 件` : 'B該当なし'}
+                  </span>
+                </div>
+
+                {bFocus.bTotal > 0 ? (
+                  <>
+                    <div className="flex items-end justify-between gap-2">
+                      <span className="text-4xl font-bold tracking-tighter text-emerald-600">
+                        {bFocus.bPct}
+                        <span className="text-sm font-normal text-muted-foreground/60 ml-1">%</span>
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/60 pb-1 max-w-[180px] text-right leading-relaxed">
+                        重要×非緊急のうち、<br />「できた」と記録された割合
+                      </span>
+                    </div>
+                    <Progress value={bFocus.bPct} className="h-2 bg-emerald-100" />
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic py-2">
+                    この期間にB象限（重要×非緊急）の予定はありませんでした。
+                  </p>
+                )}
+
+                {unreportedCount > 0 && (
+                  <div className="flex items-center gap-2 text-[10px] text-amber-600 bg-amber-50 rounded-xl px-3 py-2">
+                    <span>⚠️</span>
+                    <span>未報告の予定が {unreportedCount} 件あります。報告するとレポートの精度が上がります。</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 週報レポート */}
             <Card className="border-none shadow-xl bg-white rounded-[2.5rem] overflow-hidden">
               <CardContent className="p-8 space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-primary/40">
                     <Sparkles className="h-4 w-4" />
                     <span className="text-[10px] font-bold uppercase tracking-widest">
-                      {subTab === 'weekly' && '今週のあなたへ ✨'}
-                      {subTab === 'monthly' && '今月のあなたへ ✨'}
-                      {subTab === 'yearly' && '今年のあなたへ ✨'}
-                      {subTab === 'custom' && 'この期間のあなたへ ✨'}
+                      {subTab === 'weekly' && '今週のレポート'}
+                      {subTab === 'monthly' && '今月のレポート'}
+                      {subTab === 'yearly' && '今年のレポート'}
+                      {subTab === 'custom' && '期間のレポート'}
                     </span>
                   </div>
                 </div>
@@ -749,7 +818,7 @@ export default function DiaryPage() {
                   <div className="space-y-4 py-4">
                     <p className="text-sm text-muted-foreground italic leading-relaxed">
                       まずはミッションを登録すると、<br />
-                      あなたへの励ましを届けられます。
+                      役割・目標に沿ったレポートが生成できます。
                     </p>
                     <Button asChild variant="outline" className="w-full h-12 rounded-2xl gap-2 font-bold">
                       <Link href="/setup">
@@ -758,36 +827,50 @@ export default function DiaryPage() {
                       </Link>
                     </Button>
                   </div>
-                ) : isPraiseLoading ? (
-                  <div className="space-y-3 py-2">
+                ) : isReportLoading ? (
+                  <div className="space-y-4 py-2">
                     <Skeleton className="h-4 w-full bg-primary/5" />
                     <Skeleton className="h-4 w-5/6 bg-primary/5" />
-                    <Skeleton className="h-4 w-4/6 bg-primary/5" />
-                    <div className="h-3" />
+                    <div className="h-2" />
                     <Skeleton className="h-4 w-full bg-primary/5" />
+                    <Skeleton className="h-4 w-4/6 bg-primary/5" />
+                    <div className="h-2" />
                     <Skeleton className="h-4 w-3/4 bg-primary/5" />
                   </div>
-                ) : praiseResult ? (
-                  <div className="space-y-5">
-                    <p className="text-sm font-medium leading-relaxed text-foreground/70">
-                      {praiseResult.highlight}
-                    </p>
-                    <div className="p-5 bg-primary/5 rounded-2xl border border-primary/5">
-                      <div className="flex items-center gap-2 text-primary/50 mb-2">
-                        <Heart className="h-3.5 w-3.5" />
+                ) : reportResult ? (
+                  <div className="space-y-6">
+                    <section className="space-y-2">
+                      <div className="text-[9px] font-bold text-primary/40 uppercase tracking-widest">サマリー</div>
+                      <p className="text-sm leading-relaxed text-foreground/70">{reportResult.summary}</p>
+                    </section>
+
+                    <section className="p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 space-y-2">
+                      <div className="flex items-center gap-2 text-emerald-700/70">
+                        <span className="text-sm">🌿</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">重要な時間へのフォーカス</span>
+                      </div>
+                      <p className="text-sm leading-relaxed text-foreground/75">{reportResult.importantFocus}</p>
+                    </section>
+
+                    <section className="p-5 bg-primary/5 rounded-2xl border border-primary/5 space-y-2">
+                      <div className="flex items-center gap-2 text-primary/60">
+                        <Compass className="h-3.5 w-3.5" />
                         <span className="text-[10px] font-bold uppercase tracking-widest">ミッションとの接点</span>
                       </div>
-                      <p className="text-sm text-foreground/70 leading-relaxed">
-                        {praiseResult.missionLink}
+                      <p className="text-sm leading-relaxed text-foreground/70">{reportResult.missionAlignment}</p>
+                    </section>
+
+                    <section className="space-y-2">
+                      <div className="text-[9px] font-bold text-primary/40 uppercase tracking-widest">次の期間へ</div>
+                      <p className="text-base font-headline leading-relaxed text-primary/80 italic">
+                        {reportResult.nextWeek}
                       </p>
-                    </div>
-                    <p className="text-base font-headline leading-relaxed text-primary/80 italic">
-                      {praiseResult.encouragement}
-                    </p>
+                    </section>
+
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleGeneratePraise}
+                      onClick={handleGenerateReport}
                       className="w-full h-10 rounded-2xl text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest"
                     >
                       もう一度生成する
@@ -796,15 +879,18 @@ export default function DiaryPage() {
                 ) : (
                   <div className="space-y-4 py-2">
                     <p className="text-sm text-muted-foreground italic leading-relaxed">
-                      ボタンを押すと、AIがこの期間の歩みを振り返り、あなたを励ますメッセージをお届けします。
+                      ボタンを押すと、AIがこの期間の歩みをまとめ、レポートを作成します。
                     </p>
                     <Button
-                      onClick={handleGeneratePraise}
-                      disabled={isPraiseLoading}
+                      onClick={handleGenerateReport}
+                      disabled={isReportLoading}
                       className="w-full h-12 rounded-2xl gap-2 font-bold"
                     >
                       <Sparkles className="h-4 w-4" />
-                      励ましを生成する
+                      {subTab === 'weekly' && '今週のレポートを作成'}
+                      {subTab === 'monthly' && '今月のレポートを作成'}
+                      {subTab === 'yearly' && '今年のレポートを作成'}
+                      {subTab === 'custom' && 'レポートを作成'}
                     </Button>
                   </div>
                 )}
