@@ -1,78 +1,51 @@
 'use server';
 /**
- * @fileOverview 週報レポート生成の Genkit Flow。
- * 事実ベースで、B象限（重要×非緊急）への取り組みを中心にレビュー。
- * 評価や押し付けはせず、前向きに締める。
+ * 週報レポート生成 (Anthropic Claude API)
+ * 事実ベース・B象限フォーカス・押し付けないトーン
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import Anthropic from '@anthropic-ai/sdk';
 
-const RoleSchema = z.object({
-  name: z.string(),
-  goal: z.string(),
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const WeeklyReportInputSchema = z.object({
-  mission: z.object({
-    roles: z.array(RoleSchema),
-    weeklyFocus: z.string(),
-  }),
-  periodLabel: z.string().describe('対象期間。例: "今週", "今月", "2026-04-21〜04-27"'),
-  nextPeriodLabel: z.string().describe('次期間の表示名。例: "来週", "来月", "これから"'),
-  totalEvents: z.number(),
-  doneCount: z.number(),
-  failedCount: z.number(),
-  deferredCount: z.number(),
-  unreportedCount: z.number().describe('期間内で過去なのに未報告のまま残っている件数'),
-  quadrantCounts: z.object({
-    a: z.number().describe('重要×緊急'),
-    b: z.number().describe('重要×非緊急'),
-    c: z.number().describe('緊急×非重要'),
-    d: z.number().describe('低優先'),
-  }),
-  bDoneCount: z.number().describe('B象限のうち「できた」数'),
-  bTotalCount: z.number().describe('B象限の総数'),
-  importantFocusPct: z.number().describe('B象限の処理度 0-100（bDone/bTotal）'),
-  userComment: z.string(),
-});
-export type WeeklyReportInput = z.infer<typeof WeeklyReportInputSchema>;
+interface RoleInput {
+  name: string;
+  goal: string;
+}
 
-const WeeklyReportOutputSchema = z.object({
-  summary: z.string().describe('期間の活動の客観的な要約（1〜2文）'),
-  importantFocus: z.string().describe('B象限（重要×非緊急）の取り組み評価。具体数値を含む（2〜3文）'),
-  missionAlignment: z.string().describe('ミッション（役割・目標）との接点（1〜2文）'),
-  nextWeek: z.string().describe('次期間への前向きな一言（「{nextPeriodLabel}も応援しています！」で締める、1文）'),
-});
-export type WeeklyReportOutput = z.infer<typeof WeeklyReportOutputSchema>;
+export interface WeeklyReportInput {
+  mission: {
+    roles: RoleInput[];
+    weeklyFocus: string;
+  };
+  periodLabel: string;
+  nextPeriodLabel: string;
+  totalEvents: number;
+  doneCount: number;
+  failedCount: number;
+  deferredCount: number;
+  unreportedCount: number;
+  quadrantCounts: { a: number; b: number; c: number; d: number };
+  bDoneCount: number;
+  bTotalCount: number;
+  importantFocusPct: number;
+  userComment: string;
+}
+
+export interface WeeklyReportOutput {
+  summary: string;
+  importantFocus: string;
+  missionAlignment: string;
+  nextWeek: string;
+}
 
 export type AiWeeklyReportResult =
   | { ok: true; data: WeeklyReportOutput }
   | { ok: false; error: string };
 
-/**
- * サーバーアクション経由で呼び出される関数。
- * エラーを throw せずに { ok: false, error } として返すことで、
- * Next.js 本番ビルドのエラーマスキングを回避し、クライアントに詳細を届ける。
- */
-export async function aiWeeklyReport(
-  input: WeeklyReportInput
-): Promise<AiWeeklyReportResult> {
-  try {
-    const data = await aiWeeklyReportFlow(input);
-    return { ok: true, data };
-  } catch (err: any) {
-    const message = err?.message || String(err) || "unknown error";
-    console.error("aiWeeklyReport failed:", message, err?.stack);
-    return { ok: false, error: message };
-  }
-}
-
-const weeklyReportPrompt = ai.definePrompt({
-  name: 'aiWeeklyReportPrompt',
-  input: { schema: WeeklyReportInputSchema },
-  output: { schema: WeeklyReportOutputSchema },
-  prompt: `あなたは「振り返りコーチ」です。
+const SYSTEM_PROMPT = `あなたは「振り返りコーチ」です。
 1つの期間の行動データをもとに、事実に基づいた週報レポートを作成してください。
 
 【重視するポイント】
@@ -85,53 +58,105 @@ const weeklyReportPrompt = ai.definePrompt({
 - 「〜できませんでした」「〜が足りない」「もっと〜すべき」などは使わない
 - 「しかし」「でも」「一方で」などの逆接は避ける
 - 事実（数字・事象）を率直に伝える。良し悪しの判定はしない
-- 最後は前向きに締め、必ず「{{{nextPeriodLabel}}}も応援しています！」で終わらせる
+- 最後は前向きに締め、必ず末尾が「（次期間ラベル）も応援しています！」で終わるようにする
 
 【トーン】
 - 敬語で、温かく、押し付けがましくない
 - コーチより「伴走する仲間」の距離感
 - 「〜ですね」「〜できましたね」「〜が見えます」など
 
-【レポート構成】
-1. summary（1〜2文）: {{{periodLabel}}}の活動の概要を、数字を交えて客観的に
-2. importantFocus（2〜3文）: B象限の取り組み。具体数値（件数・処理度%）を入れ、どんな時間として使えたかを事実ベースで言及
-3. missionAlignment（1〜2文）: 登録された役割・目標と{{{periodLabel}}}の行動の接点
-4. nextWeek（1文）: 励ましで締める。末尾は「{{{nextPeriodLabel}}}も応援しています！」
+【出力形式】
+以下のJSONのみで回答してください。余計な説明・前置きは不要です。
+{
+  "summary": "期間の活動の客観的な要約（1〜2文）",
+  "importantFocus": "B象限の取り組み評価。具体数値（件数・%）を含む（2〜3文）",
+  "missionAlignment": "ミッション（役割・目標）との接点（1〜2文）",
+  "nextWeek": "次期間への前向きな一言（末尾は「（次期間ラベル）も応援しています！」で終わる、1文）"
+}`;
 
-【ユーザーデータ】
+function formatRoles(roles: RoleInput[]): string {
+  if (!roles.length) return '（未登録）';
+  return roles.map((r) => `- ${r.name}（目標: ${r.goal}）`).join('\n');
+}
+
+function buildUserPrompt(input: WeeklyReportInput): string {
+  return `【ユーザーデータ】
 ミッション：
-{{#each mission.roles}}
-- {{name}}（目標: {{goal}}）
-{{else}}
-- （未登録）
-{{/each}}
-今週のフォーカス: {{#if mission.weeklyFocus}}{{{mission.weeklyFocus}}}{{else}}（未記入）{{/if}}
+${formatRoles(input.mission.roles)}
 
-{{{periodLabel}}}の集計：
-- 予定数: {{{totalEvents}}}件
-- 完了: {{{doneCount}}}件 / 未達: {{{failedCount}}}件 / 保留: {{{deferredCount}}}件 / 未報告: {{{unreportedCount}}}件
-- 象限分布（件数）: A={{{quadrantCounts.a}}}（重要×緊急） / B={{{quadrantCounts.b}}}（重要×非緊急） / C={{{quadrantCounts.c}}}（緊急×非重要） / D={{{quadrantCounts.d}}}（低優先）
-- B象限の処理度: {{{bDoneCount}}} / {{{bTotalCount}}} 件 = {{{importantFocusPct}}}%
+今週のフォーカス: ${input.mission.weeklyFocus || '（未記入）'}
+
+${input.periodLabel}の集計：
+- 予定数: ${input.totalEvents}件
+- 完了: ${input.doneCount}件 / 未達: ${input.failedCount}件 / 保留: ${input.deferredCount}件 / 未報告: ${input.unreportedCount}件
+- 象限分布（件数）: A=${input.quadrantCounts.a}（重要×緊急） / B=${input.quadrantCounts.b}（重要×非緊急） / C=${input.quadrantCounts.c}（緊急×非重要） / D=${input.quadrantCounts.d}（低優先）
+- B象限の処理度: ${input.bDoneCount} / ${input.bTotalCount} 件 = ${input.importantFocusPct}%
 
 ユーザーコメント:
-{{#if userComment}}
-{{{userComment}}}
-{{else}}
-（なし）
-{{/if}}
+${input.userComment || '（なし）'}
 
-出力は JSON 形式で、"summary", "importantFocus", "missionAlignment", "nextWeek" を含めてください。`,
-});
+次期間ラベル: ${input.nextPeriodLabel}
 
-const aiWeeklyReportFlow = ai.defineFlow(
-  {
-    name: 'aiWeeklyReportFlow',
-    inputSchema: WeeklyReportInputSchema,
-    outputSchema: WeeklyReportOutputSchema,
-  },
-  async (input) => {
-    const { output } = await weeklyReportPrompt(input);
-    if (!output) throw new Error('Failed to generate weekly report.');
-    return output;
+nextWeek の末尾は必ず「${input.nextPeriodLabel}も応援しています！」で終わらせてください。
+出力はJSONのみ。`;
+}
+
+function extractJson(text: string): string {
+  // Claude が JSON 前後にテキストを付けた場合に備えて { ... } を抽出
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('No JSON object found in response');
+  return match[0];
+}
+
+export async function aiWeeklyReport(
+  input: WeeklyReportInput
+): Promise<AiWeeklyReportResult> {
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return { ok: false, error: 'ANTHROPIC_API_KEY is not set on the server.' };
+    }
+
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      system: [
+        {
+          type: 'text',
+          text: SYSTEM_PROMPT,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+      messages: [{ role: 'user', content: buildUserPrompt(input) }],
+    });
+
+    const textBlock = response.content.find((b) => b.type === 'text');
+    if (!textBlock || textBlock.type !== 'text') {
+      throw new Error('Empty response from Claude');
+    }
+
+    const parsed = JSON.parse(extractJson(textBlock.text));
+
+    if (
+      typeof parsed.summary !== 'string' ||
+      typeof parsed.importantFocus !== 'string' ||
+      typeof parsed.missionAlignment !== 'string' ||
+      typeof parsed.nextWeek !== 'string'
+    ) {
+      throw new Error('Response JSON is missing required fields');
+    }
+
+    return {
+      ok: true,
+      data: {
+        summary: parsed.summary,
+        importantFocus: parsed.importantFocus,
+        missionAlignment: parsed.missionAlignment,
+        nextWeek: parsed.nextWeek,
+      },
+    };
+  } catch (err: any) {
+    const message = err?.message || String(err);
+    console.error('aiWeeklyReport failed:', message);
+    return { ok: false, error: message };
   }
-);
+}

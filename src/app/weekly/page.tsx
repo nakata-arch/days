@@ -79,12 +79,9 @@ export default function DiaryPage() {
   );
   const [customEnd, setCustomEnd] = useState<string>(() => format(today, "yyyy-MM-dd"));
 
-  // 録音関連のステート
+  // 録音関連のステート（Web Speech API のみ）
   const [isRecording, setIsRecording] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  // Web Speech API 用
   const recognitionRef = useRef<any>(null);
   const transcriptBufferRef = useRef<string>("");
 
@@ -203,127 +200,47 @@ export default function DiaryPage() {
     }
   };
 
-  const startMediaRecording = async () => {
-    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      toast({
-        variant: "destructive",
-        title: "録音できません",
-        description: "このブラウザは録音に対応していません。Safari や Chrome の最新版でお試しください。",
-      });
-      return;
-    }
-    if (typeof MediaRecorder === "undefined") {
-      toast({
-        variant: "destructive",
-        title: "録音できません",
-        description: "このブラウザは MediaRecorder に未対応です。",
-      });
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // ブラウザがサポートする mimeType を自動選択（iOS Safari は audio/webm 非対応）
-      const candidates = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/mp4;codecs=mp4a.40.2',
-        'audio/mp4',
-        'audio/aac',
-        'audio/ogg;codecs=opus',
-      ];
-      const supported = candidates.find((t) => MediaRecorder.isTypeSupported(t));
-      const mediaRecorder = supported ? new MediaRecorder(stream, { mimeType: supported }) : new MediaRecorder(stream);
-      const recordedType = mediaRecorder.mimeType || supported || 'audio/webm';
-
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      mediaRecorder.onerror = (e: any) => {
-        console.error('MediaRecorder error:', e.error || e);
-        toast({
-          variant: 'destructive',
-          title: '録音エラー',
-          description: String(e.error?.message || e.error || 'unknown'),
-        });
-      };
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: recordedType });
-        if (blob.size === 0) {
-          toast({ variant: 'destructive', title: '録音エラー', description: '音声を取得できませんでした。' });
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64Audio = reader.result as string;
-          handleRefine(base64Audio);
-        };
-        reader.onerror = () => {
-          toast({ variant: 'destructive', title: '録音エラー', description: '音声の読み取りに失敗しました。' });
-        };
-        reader.readAsDataURL(blob);
-        stream.getTracks().forEach((t) => t.stop());
-      };
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err: any) {
-      console.error('Failed to start recording:', err);
-      const msg =
-        err?.name === 'NotAllowedError'
-          ? 'マイクへのアクセスが拒否されました。ブラウザの設定で許可してください。'
-          : err?.name === 'NotFoundError'
-            ? 'マイクが見つかりません。デバイスを確認してください。'
-            : err?.message || 'マイクを起動できませんでした。';
-      toast({ variant: 'destructive', title: '録音エラー', description: msg });
-    }
-  };
-
-  const startRecording = async () => {
+  const startRecording = () => {
     if (typeof window === "undefined") return;
-    // Web Speech API が使える環境（Android Chrome など）では優先
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SR) {
-      startSpeechRecognition(SR);
+    if (!SR) {
+      toast({
+        variant: "destructive",
+        title: "音声入力に未対応",
+        description: "このブラウザは音声入力に対応していません。Chrome または Safari の最新版でお試しください。",
+      });
       return;
     }
-    // フォールバック: MediaRecorder + Gemini 音声認識（iOS Safari など）
-    await startMediaRecording();
+    startSpeechRecognition(SR);
   };
 
   const stopRecording = () => {
-    // Speech API 経由の場合
     if (recognitionRef.current && isRecording) {
       try {
         recognitionRef.current.stop();
       } catch (e) {
         console.warn("stopRecording speech error:", e);
       }
-      return;
-    }
-    // MediaRecorder 経由の場合
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
     }
   };
 
-  const handleRefine = async (audioDataUri?: string) => {
+  const handleRefine = async () => {
+    if (!dailyMemo?.trim()) {
+      toast({ variant: "destructive", title: "テキストがありません", description: "整えるメモが空です。" });
+      return;
+    }
     setIsRefining(true);
     try {
-      const result = await refineReflection({
-        text: audioDataUri ? undefined : dailyMemo,
-        audioDataUri
-      });
+      const result = await refineReflection({ text: dailyMemo });
       setDailyMemo(result.refinedText);
-      toast({ title: audioDataUri ? "聞き取りました" : "AIが整えました", description: "日記を清書しました。" });
-    } catch (err) {
+      toast({ title: "AIが整えました", description: "日記を清書しました。" });
+    } catch (err: any) {
       console.error("Refine failed:", err);
-      toast({ variant: "destructive", title: "AI整形エラー", description: "うまく文章を整えられませんでした。" });
+      toast({
+        variant: "destructive",
+        title: "AI整形エラー",
+        description: err?.message || "うまく文章を整えられませんでした。",
+      });
     } finally {
       setIsRefining(false);
     }

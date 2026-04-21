@@ -9,7 +9,6 @@ import {
   getDocs,
   doc,
   updateDoc,
-  where,
 } from "firebase/firestore";
 import { AppEvent, ReportStatus } from "@/lib/types";
 import { Navigation } from "@/components/Navigation";
@@ -232,20 +231,26 @@ export default function ReportPage() {
     }
 
     try {
-      const now = new Date().toISOString();
+      const now = new Date();
       const eventsRef = collection(db, "users", user.uid, "events");
 
-      const q = query(
-        eventsRef,
-        where("startAt", "<=", now),
-        orderBy("startAt", "desc")
-      );
+      // 全件取得しクライアント側で「過去」を判定（タイムゾーン文字列比較の齟齬を避けるため）
+      const q = query(eventsRef, orderBy("startAt", "desc"));
 
       const snap = await getDocs(q);
-      const fetched = snap.docs.map((d) => ({ ...d.data(), id: d.id } as AppEvent));
+      const pastEvents = snap.docs
+        .map((d) => ({ ...d.data(), id: d.id } as AppEvent))
+        .filter((e) => !e.deleted)
+        .filter((e) => {
+          try {
+            return isBefore(parseISO(e.startAt), now);
+          } catch {
+            return false;
+          }
+        });
 
-      const unreported = fetched.filter((e) => !e.deleted && !e.reportStatus);
-      const reported = fetched.filter((e) => !e.deleted && !!e.reportStatus);
+      const unreported = pastEvents.filter((e) => !e.reportStatus);
+      const reported = pastEvents.filter((e) => !!e.reportStatus);
 
       setEvents(unreported);
       setReportedEvents(reported);

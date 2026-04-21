@@ -1,46 +1,25 @@
 'use server';
 /**
- * @fileOverview 書きかけのメモやボイスメモの音声を、AIが読みやすい日記形式に整えるGenkit Flow。
- *
- * - refineReflection - 入力されたテキストまたは音声を元に、日記を清書する関数。
- * - RefineReflectionInput - 入力スキーマ（テキストまたは音声データURI）。
- * - RefineReflectionOutput - 出力スキーマ（整形されたテキスト）。
+ * 日記メモの AI 清書 (Anthropic Claude API)
+ * テキスト入力のみ。音声は Web Speech API でクライアント側処理。
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import Anthropic from '@anthropic-ai/sdk';
 
-const RefineReflectionInputSchema = z.object({
-  text: z.string().optional().describe('ユーザーが入力した書きかけのテキストやメモ。'),
-  audioDataUri: z.string().optional().describe('録音されたボイスメモ（data:audio/webm;base64,... 形式）。'),
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
-export type RefineReflectionInput = z.infer<typeof RefineReflectionInputSchema>;
 
-const RefineReflectionOutputSchema = z.object({
-  refinedText: z.string().describe('AIによって整えられた、読みやすく温かみのある日記の文章。'),
-});
-export type RefineReflectionOutput = z.infer<typeof RefineReflectionOutputSchema>;
-
-export async function refineReflection(input: RefineReflectionInput): Promise<RefineReflectionOutput> {
-  return refineReflectionFlow(input);
+export interface RefineReflectionInput {
+  text: string;
 }
 
-const refineReflectionPrompt = ai.definePrompt({
-  name: 'refineReflectionPrompt',
-  input: { schema: RefineReflectionInputSchema },
-  output: { schema: RefineReflectionOutputSchema },
-  prompt: `あなたは穏やかで思慮深い日記の代筆者、あるいはタイムマネジメント・コーチです。
-ユーザーから提供された「断片的なメモ」または「録音された音声」を元に、その日の振り返り日記を優しく、読みやすく整えてください。
+export interface RefineReflectionOutput {
+  refinedText: string;
+}
 
-{{#if audioDataUri}}
-音声の内容を聞き取り、その時の感情や出来事を丁寧に汲み取ってください。
-{{media url=audioDataUri}}
-{{/if}}
-
-{{#if text}}
-以下のメモを元に、文章を整えてください：
-「{{{text}}}」
-{{/if}}
+const SYSTEM_PROMPT = `あなたは穏やかで思慮深い日記の代筆者、あるいはタイムマネジメント・コーチです。
+ユーザーから提供された「断片的なメモ」を元に、その日の振り返り日記を優しく、読みやすく整えてください。
 
 指針：
 - ユーザーの口調や感情を尊重しつつ、支離滅裂な部分は整理してください。
@@ -49,20 +28,48 @@ const refineReflectionPrompt = ai.definePrompt({
 - 決して批判せず、その日の努力や気づきを肯定的に捉えてください。
 - 元の内容にない事実を捏造しないでください。
 
-出力はJSON形式で、"refinedText" に整形後の文章を格納してください。`,
-});
+出力は以下のJSONのみで回答してください。余計な説明は不要です。
+{
+  "refinedText": "整形後の文章"
+}`;
 
-const refineReflectionFlow = ai.defineFlow(
-  {
-    name: 'refineReflectionFlow',
-    inputSchema: RefineReflectionInputSchema,
-    outputSchema: RefineReflectionOutputSchema,
-  },
-  async (input) => {
-    const { output } = await refineReflectionPrompt(input);
-    if (!output) {
-      throw new Error('Failed to refine reflection.');
-    }
-    return output;
+function extractJson(text: string): string {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('No JSON object found in response');
+  return match[0];
+}
+
+export async function refineReflection(
+  input: RefineReflectionInput
+): Promise<RefineReflectionOutput> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not set on the server.');
   }
-);
+  if (!input.text || !input.text.trim()) {
+    throw new Error('Input text is empty.');
+  }
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 1024,
+    system: [
+      { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+    ],
+    messages: [
+      {
+        role: 'user',
+        content: `以下のメモを元に、文章を整えてください：\n\n「${input.text}」`,
+      },
+    ],
+  });
+
+  const textBlock = response.content.find((b) => b.type === 'text');
+  if (!textBlock || textBlock.type !== 'text') {
+    throw new Error('Empty response from Claude');
+  }
+  const parsed = JSON.parse(extractJson(textBlock.text));
+  if (typeof parsed.refinedText !== 'string') {
+    throw new Error('refinedText is missing in response');
+  }
+  return { refinedText: parsed.refinedText };
+}
