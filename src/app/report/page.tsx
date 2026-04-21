@@ -1,18 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useUser, useFirestore, DUMMY_USER_ID } from "@/firebase";
 import {
   collection,
   query,
   orderBy,
   getDocs,
-  limit,
   doc,
   updateDoc,
-  startAfter,
-  QueryDocumentSnapshot,
-  DocumentData,
   where,
 } from "firebase/firestore";
 import { AppEvent, ReportStatus } from "@/lib/types";
@@ -47,8 +43,6 @@ import {
   useTransform,
   PanInfo,
 } from "framer-motion";
-
-const FETCH_LIMIT = 50;
 
 type ExitDir = { x: number; y: number };
 
@@ -213,81 +207,52 @@ export default function ReportPage() {
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [reportedEvents, setReportedEvents] = useState<AppEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [memo, setMemo] = useState("");
-  const lastVisibleRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [hasMore, setHasMore] = useState(true);
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);
   // exitアニメーションの方向（スワイプ方向に飛ばす）
   const [exitDir, setExitDir] = useState<ExitDir>({ x: 0, y: 0 });
 
-  const fetchAllEvents = useCallback(async (isLoadMore = false) => {
+  const fetchAllEvents = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
     }
 
-    if (isLoadMore) setLoadingMore(true);
-    else setLoading(true);
+    setLoading(true);
 
     if (user.uid === DUMMY_USER_ID) {
       const all = PREVIEW_EVENTS;
       const now = new Date();
-      // プレビュー用ダミーデータの振り分け
-      const unreported = all.filter(e => !e.reportStatus && isBefore(parseISO(e.startAt), now));
-      const reported = all.filter(e => !!e.reportStatus);
+      const unreported = all.filter((e) => !e.reportStatus && isBefore(parseISO(e.startAt), now));
+      const reported = all.filter((e) => !!e.reportStatus);
       setEvents(unreported);
       setReportedEvents(reported);
-      setHasMore(false);
       setLoading(false);
-      setLoadingMore(false);
       return;
     }
 
     try {
       const now = new Date().toISOString();
       const eventsRef = collection(db, "users", user.uid, "events");
-      
-      // クエリ: 過去の予定を取得
-      let q = query(
-        eventsRef, 
-        where("startAt", "<=", now),
-        orderBy("startAt", "desc"), 
-        limit(FETCH_LIMIT)
-      );
 
-      if (isLoadMore && lastVisibleRef.current) {
-        q = query(
-          eventsRef,
-          where("startAt", "<=", now),
-          orderBy("startAt", "desc"),
-          startAfter(lastVisibleRef.current),
-          limit(FETCH_LIMIT)
-        );
-      }
+      const q = query(
+        eventsRef,
+        where("startAt", "<=", now),
+        orderBy("startAt", "desc")
+      );
 
       const snap = await getDocs(q);
       const fetched = snap.docs.map((d) => ({ ...d.data(), id: d.id } as AppEvent));
-      
-      // 未報告と報告済みを振り分け
-      const unreported = fetched.filter(e => !e.deleted && !e.reportStatus);
-      const reported = fetched.filter(e => !e.deleted && !!e.reportStatus);
 
-      setEvents(prev => isLoadMore ? [...prev, ...unreported] : unreported);
-      setReportedEvents(prev => {
-        const combined = isLoadMore ? [...prev, ...reported] : reported;
-        // 重複を除去
-        const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-        return unique;
-      });
-      
-      lastVisibleRef.current = snap.docs[snap.docs.length - 1] || null;
-      setHasMore(snap.docs.length === FETCH_LIMIT);
+      const unreported = fetched.filter((e) => !e.deleted && !e.reportStatus);
+      const reported = fetched.filter((e) => !e.deleted && !!e.reportStatus);
+
+      setEvents(unreported);
+      setReportedEvents(reported);
     } catch (err: any) {
       console.error("ReportPage: fetch-error", err);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   }, [user, db]);
 
@@ -471,11 +436,6 @@ export default function ReportPage() {
                       </CardContent>
                     </Card>
                   ))}
-                  {hasMore && (
-                    <Button variant="ghost" onClick={() => fetchAllEvents(true)} className="w-full text-[10px] font-bold text-primary/30">
-                      {loadingMore ? <Loader2 className="h-3 w-3 animate-spin" /> : "続きを読み込む"}
-                    </Button>
-                  )}
                 </div>
               </div>
             )}

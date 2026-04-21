@@ -82,13 +82,11 @@ const weeklyReportPrompt = ai.definePrompt({
 
 【ユーザーデータ】
 ミッション：
-{{#if mission.roles.length}}
 {{#each mission.roles}}
 - {{name}}（目標: {{goal}}）
-{{/each}}
 {{else}}
-（未登録）
-{{/if}}
+- （未登録）
+{{/each}}
 今週のフォーカス: {{#if mission.weeklyFocus}}{{{mission.weeklyFocus}}}{{else}}（未記入）{{/if}}
 
 {{{periodLabel}}}の集計：
