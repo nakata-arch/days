@@ -127,6 +127,12 @@ export default function LoginPage() {
           >
             ← DAYSについて
           </a>
+
+          <p className="pt-4 text-[10px] text-slate-400 leading-relaxed">
+            ログインすることで、
+            <a href="/privacy" className="underline hover:text-slate-600">プライバシーポリシー</a>
+            に同意したものとみなされます。
+          </p>
         </div>
 
         <div className="pt-8 opacity-20">

@@ -334,7 +334,10 @@ export default function LandingPage() {
 
       <footer className="lp-footer">
         <div className="lp-logo">DAYS</div>
-        <div>© BIZPLA Co., Ltd.</div>
+        <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+          <Link href="/privacy" style={{ color: "inherit", textDecoration: "none" }}>プライバシーポリシー</Link>
+          <span>© 合同会社中田キカク</span>
+        </div>
       </footer>
     </div>
   );
