@@ -450,6 +450,65 @@ export default function ReviewPage() {
           )}
           <div className="rv-insight-note">※ AIは事実のみを示します。評価や提案はしません。</div>
         </div>
+
+        {/* DIALOGUE（対話・準備中） */}
+        <div className="rv-section-label">
+          <span className="rv-num">III.</span>DIALOGUE
+        </div>
+        <div
+          style={{
+            border: "1px solid hsl(var(--rule))",
+            background: "hsl(var(--paper-warm))",
+            padding: "28px 24px",
+            marginBottom: "32px",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'EB Garamond', serif",
+              fontStyle: "italic",
+              fontSize: "12px",
+              color: "hsl(var(--accent))",
+              letterSpacing: "0.2em",
+              marginBottom: "12px",
+            }}
+          >
+            Coming Soon
+          </div>
+          <h3
+            style={{
+              fontSize: "18px",
+              fontWeight: 600,
+              color: "hsl(var(--ink))",
+              marginBottom: "12px",
+            }}
+          >
+            AIと対話する
+          </h3>
+          <p
+            style={{
+              fontSize: "14px",
+              lineHeight: "2",
+              color: "hsl(var(--ink-soft))",
+            }}
+          >
+            記録が積み上がった方から、AIとの対話で価値観を言語化していただけるようにする予定です。
+            蓄積されたデータから、あなた自身の「北極星」を浮かび上がらせます。
+          </p>
+          <p
+            style={{
+              marginTop: "16px",
+              paddingTop: "14px",
+              borderTop: "1px dotted hsl(var(--rule))",
+              fontFamily: "'Noto Sans JP', sans-serif",
+              fontSize: "11px",
+              color: "hsl(var(--ink-faint))",
+              letterSpacing: "0.1em",
+            }}
+          >
+            ※ この機能は現在準備中です。
+          </p>
+        </div>
       </div>
 
       <Navigation />
