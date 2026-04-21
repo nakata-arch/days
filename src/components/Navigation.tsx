@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ListTodo, ClipboardCheck, Settings } from "lucide-react";
+import { BarChart3, ListTodo, ClipboardCheck, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navigation() {
@@ -12,7 +12,7 @@ export function Navigation() {
   const navItems = [
     { href: "/report", label: "報告", icon: ClipboardCheck },
     { href: "/classify", label: "分類", icon: ListTodo },
-    { href: "/weekly", label: "日記", icon: BookOpen },
+    { href: "/review", label: "レビュー", icon: BarChart3 },
     { href: "/settings", label: "設定", icon: Settings },
   ];
 
