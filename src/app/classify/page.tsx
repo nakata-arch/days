@@ -286,16 +286,30 @@ export default function ClassifyPage() {
           </div>
         ) : !currentEvent ? (
           <div className="w-full max-w-sm space-y-10 animate-in fade-in duration-700">
-            <div className="text-center space-y-4 opacity-60 pt-10">
-              <div className="w-16 h-16 bg-primary/5 rounded-[2.5rem] flex items-center justify-center mx-auto border border-primary/10">
-                <LayoutGrid className="text-primary/40 h-8 w-8" />
+            <div className="text-center space-y-5 pt-10">
+              <div className="w-16 h-16 bg-paper-warm flex items-center justify-center mx-auto border border-rule">
+                <LayoutGrid className="text-ink-faint h-8 w-8" />
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-foreground/70 tracking-tight">すべての分類が整いました</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                  All categories organized
+              <div className="space-y-2">
+                <p className="font-latin italic text-[13px] text-[hsl(var(--accent))] tracking-[0.2em]">
+                  All caught up
+                </p>
+                <p className="text-sm font-headline text-ink">
+                  {recentClassified.length > 0
+                    ? "明日以降の予定はすべて分類済みです"
+                    : "分類する予定がありません"}
+                </p>
+                <p className="text-[12px] text-ink-faint leading-relaxed pt-2">
+                  新しく追加したカレンダーの予定を<br />
+                  取り込むには、同期してください。
                 </p>
               </div>
+              <Link
+                href="/settings"
+                className="inline-block font-sans text-[11px] tracking-[0.2em] text-ink bg-paper-warm border border-rule px-5 py-2.5 hover:bg-paper transition-colors"
+              >
+                設定 → カレンダーを同期
+              </Link>
             </div>
 
             {recentClassified.length > 0 && (

@@ -64,35 +64,49 @@ export default function SettingsPage() {
       if (!user) return;
       setSyncStatus("saving");
       try {
-        const timeMin = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        const timeMax = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const nowIso = new Date().toISOString();
+        const pastIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const futureIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-        const params = new URLSearchParams({
-          timeMin,
-          timeMax,
-          timeZone: "Asia/Tokyo",
-          maxResults: "100",
-          singleEvents: "true",
-          orderBy: "startTime",
-        });
+        // 過去・未来を分けて取得（どちらも上限50件→合計最大100件）。
+        // こうすることで未来の予定が取りこぼされない。
+        const buildUrl = (timeMin: string, timeMax: string) => {
+          const params = new URLSearchParams({
+            timeMin,
+            timeMax,
+            timeZone: "Asia/Tokyo",
+            maxResults: "50",
+            singleEvents: "true",
+            orderBy: "startTime",
+          });
+          return `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`;
+        };
 
-        const response = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
+        const fetchRange = async (url: string) => {
+          const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            const apiMessage = body.error?.message || res.statusText;
+            if (res.status === 401) throw new Error("AUTH_EXPIRED");
+            if (res.status === 403) throw new Error("PERMISSION_DENIED");
+            if (res.status === 429) throw new Error("RATE_LIMITED");
+            throw new Error(`API_ERROR:${apiMessage}`);
+          }
+          const body = await res.json();
+          return (body.items || []) as any[];
+        };
 
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          const apiMessage = body.error?.message || response.statusText;
+        const [pastItems, futureItems] = await Promise.all([
+          fetchRange(buildUrl(pastIso, nowIso)),
+          fetchRange(buildUrl(nowIso, futureIso)),
+        ]);
 
-          if (response.status === 401) throw new Error("AUTH_EXPIRED");
-          if (response.status === 403) throw new Error("PERMISSION_DENIED");
-          if (response.status === 429) throw new Error("RATE_LIMITED");
-          throw new Error(`API_ERROR:${apiMessage}`);
+        // ID重複を除去
+        const byId = new Map<string, any>();
+        for (const ev of [...pastItems, ...futureItems]) {
+          if (ev?.id) byId.set(ev.id, ev);
         }
-
-        const body = await response.json();
-        const items: any[] = body.items || [];
+        const items = Array.from(byId.values());
 
         const now = Date.now();
         for (const ev of items) {
@@ -120,7 +134,10 @@ export default function SettingsPage() {
         }
 
         setSyncStatus("success");
-        toast({ title: "同期完了", description: `${items.length}件の予定を同期しました（最大100件）。` });
+        toast({
+          title: "同期完了",
+          description: `過去・未来の予定を合計 ${items.length} 件取得しました（各最大50件）。`,
+        });
         setTimeout(() => setSyncStatus("idle"), 3000);
       } catch (err: any) {
         console.error("SettingsPage: sync process error", err);
