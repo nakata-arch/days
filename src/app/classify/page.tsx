@@ -101,7 +101,7 @@ function SwipeCard({
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className="cursor-grab active:cursor-grabbing touch-none"
     >
-      <Card className="w-full h-full border-none shadow-2xl bg-white relative overflow-hidden rounded-[2.5rem] flex flex-col">
+      <Card className="w-full h-full border-none shadow-2xl bg-paper relative overflow-hidden rounded-[2.5rem] flex flex-col">
         <CardContent className="p-10 flex-1 flex flex-col justify-center space-y-8">
           <motion.div
             style={{ backgroundColor: activeColor, opacity: overlayOpacity }}
@@ -296,7 +296,7 @@ export default function ClassifyPage() {
                 </div>
                 <div className="space-y-3">
                   {recentClassified.slice(0, 5).map((ev) => (
-                    <Card key={ev.id} className="border-none shadow-sm bg-white/60 rounded-2xl overflow-hidden">
+                    <Card key={ev.id} className="border-none shadow-sm bg-paper rounded-2xl overflow-hidden">
                       <CardContent className="p-4 flex items-center justify-between gap-4">
                         <div className="min-w-0 space-y-1">
                           <h4 className="text-[13px] font-bold text-foreground/70 truncate">{ev.title}</h4>
@@ -329,7 +329,7 @@ export default function ClassifyPage() {
                   key={`next-${nextEvent.id}`}
                   className="absolute w-full h-full opacity-50 scale-95 translate-y-4 pointer-events-none z-0"
                 >
-                  <Card className="w-full h-full border-none shadow-lg bg-white/80 rounded-[2.5rem] flex flex-col overflow-hidden">
+                  <Card className="w-full h-full border-none shadow-lg bg-paper-warm rounded-[2.5rem] flex flex-col overflow-hidden">
                     <CardContent className="p-10 flex-1 flex flex-col justify-center space-y-8">
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">

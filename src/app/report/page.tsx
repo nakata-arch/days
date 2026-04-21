@@ -132,7 +132,7 @@ function ReportSwipeCard({
       style={{ x, y, rotate }}
       className="w-full relative z-10 touch-none"
     >
-      <Card className="w-full border-none shadow-2xl bg-white rounded-[2.5rem] overflow-hidden relative">
+      <Card className="w-full border-none shadow-2xl bg-paper rounded-[2.5rem] overflow-hidden relative">
         <motion.div
           style={{ backgroundColor: activeColor, opacity: overlayOpacity }}
           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
@@ -369,7 +369,7 @@ export default function ReportPage() {
               {/* 次カードのプレビュー層 */}
               {nextEvent && (
                 <div className="absolute inset-0 scale-95 opacity-40 pointer-events-none z-0">
-                  <Card className="w-full h-full border-none shadow-lg bg-white/80 rounded-[2.5rem] overflow-hidden">
+                  <Card className="w-full h-full border-none shadow-lg bg-paper-warm rounded-[2.5rem] overflow-hidden">
                     <CardContent className="p-10 space-y-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-primary/40 truncate">
@@ -420,13 +420,13 @@ export default function ReportPage() {
                 </div>
                 <div className="space-y-4">
                   {reportedEvents.map((ev) => (
-                    <Card key={ev.id} onClick={() => setEditingEvent(ev)} className="border-none shadow-sm bg-white/60 rounded-3xl cursor-pointer hover:bg-white transition-all">
+                    <Card key={ev.id} onClick={() => setEditingEvent(ev)} className="border-none shadow-sm bg-paper rounded-3xl cursor-pointer hover:bg-paper-warm transition-all">
                       <CardContent className="p-5 flex items-center gap-4">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                           ev.reportStatus === 'done' ? 'bg-emerald-50 text-emerald-500' :
                           ev.reportStatus === 'failed' ? 'bg-rose-50 text-rose-500' :
                           ev.reportStatus === 'deferred' ? 'bg-amber-50 text-amber-500' :
-                          'bg-slate-50 text-slate-400'
+                          'bg-paper-warm text-ink-faint'
                         }`}>
                           {ev.reportStatus === 'done' ? <CheckCircle2 className="h-5 w-5" /> :
                            ev.reportStatus === 'failed' ? <XCircle className="h-5 w-5" /> :

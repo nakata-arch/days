@@ -11,11 +11,21 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Alegreya', 'serif'],
+        body: ['Shippori Mincho', 'Yu Mincho', 'serif'],
+        headline: ['Shippori Mincho', 'serif'],
+        latin: ['EB Garamond', 'serif'],
+        sans: ['Noto Sans JP', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
+        paper: 'hsl(var(--paper))',
+        'paper-warm': 'hsl(var(--paper-warm))',
+        'paper-deep': 'hsl(var(--paper-deep))',
+        ink: 'hsl(var(--ink))',
+        'ink-soft': 'hsl(var(--ink-soft))',
+        'ink-faint': 'hsl(var(--ink-faint))',
+        gold: 'hsl(var(--gold))',
+        rule: 'hsl(var(--rule))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

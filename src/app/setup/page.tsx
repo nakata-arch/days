@@ -130,18 +130,18 @@ export default function SetupPage() {
 
   if (isUserLoading || loading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-background gap-4">
-        <Loader2 className="animate-spin opacity-20 h-8 w-8 text-primary" />
+      <div className="flex h-screen flex-col items-center justify-center bg-paper gap-4">
+        <Loader2 className="animate-spin opacity-40 h-6 w-6 text-ink-faint" />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-background p-8 text-center gap-6">
-        <Compass className="h-12 w-12 mx-auto opacity-20" />
-        <p className="text-sm font-bold">ログインが必要です</p>
-        <Button asChild className="rounded-full px-8 gap-2 font-bold">
+      <div className="flex h-screen flex-col items-center justify-center bg-paper p-8 text-center gap-6">
+        <Compass className="h-12 w-12 text-ink-faint opacity-40" />
+        <p className="text-sm text-ink">ログインが必要です</p>
+        <Button asChild className="rounded-none px-8 gap-2 font-sans text-xs tracking-[0.15em] bg-ink text-paper hover:opacity-90">
           <Link href="/login">
             <LogIn className="h-4 w-4" /> ログイン画面へ
           </Link>
@@ -151,46 +151,38 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background pb-32">
-      <header className="px-8 pt-16 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/5 rounded-2xl flex items-center justify-center border border-primary/5">
-            <Compass className="text-primary/40 h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-headline font-bold text-foreground/70">
-              {isEditMode ? "ミッションを編集" : "あなたのミッション"}
-            </h1>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-primary/40 mt-1">
-              Setup your compass
-            </p>
-          </div>
+    <div className="flex flex-col min-h-screen bg-paper pb-32">
+      <header className="px-6 pt-10 pb-6 border-b border-rule max-w-[720px] w-full mx-auto">
+        <div className="font-latin italic text-[13px] text-[hsl(var(--accent))] tracking-[0.2em] mb-3">
+          {isEditMode ? "EDIT" : "SETUP"}
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          あなたが大切にしたい役割と目標を書き出しましょう。
-          時間の使い方を整える「北極星」になります。
+        <h1 className="text-2xl font-headline font-semibold text-ink mb-2">
+          {isEditMode ? "ミッションを編集" : "あなたのミッション"}
+        </h1>
+        <p className="text-[13px] text-ink-soft leading-relaxed">
+          あなたが大切にしたい役割と目標を書き出しましょう。時間の使い方を整える「北極星」になります。
         </p>
       </header>
 
-      <main className="px-8 mt-10 space-y-8">
+      <main className="max-w-[720px] w-full mx-auto px-6 mt-10 space-y-10">
         {/* 役割セクション */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-2 text-primary/40">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-ink-faint">
               <Target className="h-3.5 w-3.5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">役割と目標</span>
+              <span className="font-sans text-[10px] tracking-[0.2em]">役割と目標</span>
             </div>
-            <span className="text-[10px] font-bold text-muted-foreground/40">
+            <span className="font-latin italic text-[12px] text-ink-faint">
               {roles.length} / {MAX_ROLES}
             </span>
           </div>
 
           <div className="space-y-4">
             {roles.map((role, index) => (
-              <Card key={role.id} className="border-none shadow-sm bg-white rounded-[1.5rem] overflow-hidden">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-primary/40 uppercase tracking-widest">
+              <div key={role.id} className="border border-rule bg-paper">
+                <div className="p-5 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-rule">
+                    <span className="font-latin italic text-[12px] text-[hsl(var(--accent))] tracking-wider">
                       Role #{index + 1}
                     </span>
                     {roles.length > 1 && (
@@ -199,7 +191,7 @@ export default function SetupPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleRemoveRole(role.id)}
-                        className="h-8 w-8 rounded-full text-muted-foreground/40 hover:text-destructive"
+                        className="h-8 w-8 rounded-none text-ink-faint hover:text-[hsl(var(--accent))]"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -207,7 +199,7 @@ export default function SetupPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`role-name-${role.id}`} className="text-[11px] font-bold text-foreground/60">
+                    <Label htmlFor={`role-name-${role.id}`} className="font-sans text-[10px] tracking-[0.15em] text-ink-soft">
                       役割
                     </Label>
                     <Input
@@ -215,12 +207,12 @@ export default function SetupPage() {
                       placeholder="例: 父親として / 管理職として"
                       value={role.name}
                       onChange={(e) => handleChangeRole(role.id, "name", e.target.value)}
-                      className="h-12 rounded-xl bg-primary/[0.02] border-primary/5 text-sm"
+                      className="h-12 rounded-none bg-paper-warm border-rule text-sm font-body text-ink focus-visible:ring-0 focus-visible:border-ink"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`role-goal-${role.id}`} className="text-[11px] font-bold text-foreground/60">
+                    <Label htmlFor={`role-goal-${role.id}`} className="font-sans text-[10px] tracking-[0.15em] text-ink-soft">
                       長期目標
                     </Label>
                     <Input
@@ -228,11 +220,11 @@ export default function SetupPage() {
                       placeholder="例: 家族との時間を週10時間確保する"
                       value={role.goal}
                       onChange={(e) => handleChangeRole(role.id, "goal", e.target.value)}
-                      className="h-12 rounded-xl bg-primary/[0.02] border-primary/5 text-sm"
+                      className="h-12 rounded-none bg-paper-warm border-rule text-sm font-body text-ink focus-visible:ring-0 focus-visible:border-ink"
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
 
             {roles.length < MAX_ROLES && (
@@ -240,9 +232,9 @@ export default function SetupPage() {
                 type="button"
                 variant="outline"
                 onClick={handleAddRole}
-                className="w-full h-14 rounded-2xl gap-2 font-bold bg-white/50 border-primary/5 hover:bg-white border-dashed"
+                className="w-full h-14 rounded-none gap-2 font-sans text-xs tracking-[0.15em] bg-paper border-rule border-dashed text-ink-soft hover:bg-paper-warm"
               >
-                <Plus className="h-4 w-4 opacity-60" />
+                <Plus className="h-4 w-4" />
                 役割を追加
               </Button>
             )}
@@ -251,21 +243,21 @@ export default function SetupPage() {
 
         {/* 今週のフォーカス */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2 text-primary/40 px-2">
+          <div className="flex items-center gap-2 text-ink-faint">
             <Compass className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">今週のフォーカス</span>
+            <span className="font-sans text-[10px] tracking-[0.2em]">今週のフォーカス</span>
           </div>
 
-          <Card className="border-none shadow-sm bg-white rounded-[1.5rem] overflow-hidden">
-            <CardContent className="p-6">
+          <div className="border border-rule bg-paper">
+            <div className="p-5">
               <Textarea
                 placeholder="今週、特に意識したいことを書いてみましょう。&#10;（1〜3行でOK）"
                 value={weeklyFocus}
                 onChange={(e) => setWeeklyFocus(e.target.value)}
-                className="min-h-[100px] bg-primary/[0.02] border-primary/5 rounded-xl resize-none text-sm leading-relaxed"
+                className="min-h-[100px] bg-paper-warm border-rule rounded-none resize-none text-sm leading-relaxed font-body focus-visible:ring-0 focus-visible:border-ink"
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </section>
 
         {/* 保存ボタン */}
@@ -274,7 +266,7 @@ export default function SetupPage() {
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full h-14 rounded-2xl gap-3 text-base font-bold"
+            className="w-full h-14 rounded-none gap-3 font-sans text-sm tracking-[0.2em] bg-ink text-paper border border-ink hover:opacity-90 disabled:opacity-40"
           >
             {saving ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -285,7 +277,7 @@ export default function SetupPage() {
           </Button>
 
           {isEditMode && (
-            <Button asChild variant="ghost" className="w-full h-12 rounded-2xl text-muted-foreground/60 font-bold">
+            <Button asChild variant="ghost" className="w-full h-12 rounded-none font-sans text-xs tracking-[0.15em] text-ink-faint hover:text-ink">
               <Link href="/settings">キャンセル</Link>
             </Button>
           )}

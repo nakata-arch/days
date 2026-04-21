@@ -4,48 +4,44 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 215 25% 27%;
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 27%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 27%;
-    --primary: 215 30% 45%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 210 20% 95%;
-    --secondary-foreground: 215 25% 27%;
-    --muted: 210 20% 95%;
-    --muted-foreground: 215 15% 55%;
-    --accent: 260 20% 90%;
-    --accent-foreground: 215 25% 27%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 210 20% 90%;
-    --input: 210 20% 90%;
-    --ring: 215 30% 45%;
-    --radius: 1rem;
-  }
+    /* Warm paper palette (LP / Review と統一) */
+    --background: 44 40% 94%;          /* paper        #f5f1e8 */
+    --foreground: 48 12% 10%;          /* ink          #1a1915 */
+    --card: 44 40% 94%;                /* paper        same as bg */
+    --card-foreground: 48 12% 10%;
+    --popover: 44 40% 94%;
+    --popover-foreground: 48 12% 10%;
 
-  .dark {
-    --background: 215 25% 10%;
-    --foreground: 210 20% 98%;
-    --card: 215 25% 12%;
-    --card-foreground: 210 20% 98%;
-    --popover: 215 25% 12%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 210 20% 98%;
-    --primary-foreground: 215 25% 10%;
-    --secondary: 215 20% 20%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 20% 20%;
-    --muted-foreground: 215 15% 65%;
-    --accent: 215 20% 20%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 215 20% 20%;
-    --input: 215 20% 20%;
-    --ring: 215 25% 85%;
+    --primary: 48 12% 10%;             /* ink = primary */
+    --primary-foreground: 44 40% 94%;  /* paper */
+
+    --secondary: 44 40% 88%;           /* paper-warm   #ede6d3 */
+    --secondary-foreground: 48 12% 10%;
+
+    --muted: 44 40% 88%;               /* paper-warm */
+    --muted-foreground: 45 6% 51%;     /* ink-faint    #8a867d */
+
+    --accent: 8 66% 33%;               /* accent red   #8b2c1d */
+    --accent-foreground: 44 40% 94%;   /* paper */
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 44 40% 94%;
+
+    --border: 45 24% 72%;              /* rule         #c9c0a8 */
+    --input: 45 24% 72%;
+    --ring: 48 12% 10%;
+
+    --radius: 0.5rem;
+
+    /* 名称付きカスタム（Tailwind theme とは別に raw 使用できる） */
+    --paper: 44 40% 94%;
+    --paper-warm: 44 40% 88%;
+    --paper-deep: 43 36% 83%;          /* paper-deep   #e4dcc4 */
+    --ink: 48 12% 10%;
+    --ink-soft: 42 9% 22%;             /* ink-soft     #3d3a33 */
+    --ink-faint: 45 6% 51%;
+    --gold: 39 39% 48%;                /* gold         #a8874a */
+    --rule: 45 24% 72%;
   }
 }
 
@@ -54,17 +50,40 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body tracking-tight;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Shippori Mincho', 'Yu Mincho', 'YuMincho', serif;
+    font-weight: 400;
+    line-height: 1.8;
+    letter-spacing: 0.02em;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
   }
+
+  /* 和紙ドット背景（Review/LPと同じ） */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(26, 25, 21, 0.03) 1px, transparent 0);
+    background-size: 3px 3px;
+    pointer-events: none;
+    z-index: -1;
+  }
+
   h1, h2, h3, h4, h5, h6 {
-    @apply font-headline;
+    font-family: 'Shippori Mincho', 'Yu Mincho', 'YuMincho', serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
   }
 }
 
+/* パス固有：LP と Privacy と Review は独自CSS内で完結（.lp-root, .pp-root, .rv-root） */
+
 .glass {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(245, 241, 232, 0.8);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: 1px solid hsl(var(--rule));
 }
 
 .safe-area-bottom {

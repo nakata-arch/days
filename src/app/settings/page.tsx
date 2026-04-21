@@ -243,19 +243,19 @@ export default function SettingsPage() {
 
   if (isUserLoading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-background gap-4">
-        <Loader2 className="animate-spin opacity-20 h-8 w-8 text-primary" />
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">ユーザー情報を確認しています...</p>
+      <div className="flex h-screen flex-col items-center justify-center bg-paper gap-4">
+        <Loader2 className="animate-spin opacity-40 h-6 w-6 text-ink-faint" />
+        <p className="font-sans text-[10px] tracking-[0.2em] text-ink-faint">ユーザー情報を確認しています...</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-background p-8 text-center gap-6">
-        <UserIcon className="h-12 w-12 mx-auto opacity-20" />
-        <p className="text-sm font-bold">ログインが必要です</p>
-        <Button asChild className="rounded-full px-8 gap-2 font-bold">
+      <div className="flex h-screen flex-col items-center justify-center bg-paper p-8 text-center gap-6">
+        <UserIcon className="h-12 w-12 text-ink-faint opacity-40" />
+        <p className="text-sm text-ink">ログインが必要です</p>
+        <Button asChild className="rounded-none px-8 gap-2 font-sans text-xs tracking-[0.15em] bg-ink text-paper hover:opacity-90">
           <Link href="/login"><LogIn className="h-4 w-4" /> ログイン画面へ</Link>
         </Button>
       </div>
@@ -263,70 +263,66 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background pb-32">
-      <header className="p-8 pt-16" />
+    <div className="flex flex-col min-h-screen bg-paper pb-32">
+      <header className="px-6 pt-10 pb-6 border-b border-rule flex justify-between items-center">
+        <div className="font-latin text-[18px] font-medium tracking-[0.35em]">DAYS</div>
+        <div className="font-sans text-[11px] tracking-[0.15em] text-ink-faint">SETTINGS</div>
+      </header>
 
-      <main className="px-8 space-y-10">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 ring-4 ring-white shadow-sm shrink-0">
+      <main className="max-w-[720px] w-full mx-auto px-6 pt-10 space-y-10">
+        <div className="flex items-center gap-5 pb-8 border-b border-rule">
+          <Avatar className="h-16 w-16 rounded-none border border-rule shrink-0">
             <AvatarImage src={user.photoURL || ""} />
-            <AvatarFallback>
-              <UserIcon className="h-8 w-8 opacity-20" />
+            <AvatarFallback className="rounded-none bg-paper-warm">
+              <UserIcon className="h-8 w-8 text-ink-faint" />
             </AvatarFallback>
           </Avatar>
-          <div className="space-y-0.5 min-w-0">
-            <h3 className="text-xl font-bold truncate tracking-tight text-foreground/80">{user.displayName || "User"}</h3>
-            <p className="text-[10px] text-muted-foreground opacity-60 truncate uppercase font-bold tracking-widest">{user.email || "Account"}</p>
+          <div className="space-y-1 min-w-0">
+            <h3 className="text-lg font-headline font-semibold truncate text-ink">{user.displayName || "User"}</h3>
+            <p className="text-[11px] text-ink-faint truncate font-sans tracking-[0.1em]">{user.email || "Account"}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Link href="/report" className="block">
-            <Card className="border-none bg-primary/5 shadow-sm rounded-3xl hover:bg-primary/10 transition-colors">
-              <CardContent className="p-6 space-y-1">
-                <div className="flex items-center gap-2 text-primary/40">
-                  <ClipboardCheck className="h-3.5 w-3.5" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">未報告</span>
-                </div>
-                <p className="text-3xl font-bold tracking-tighter text-primary/80">
-                  {isCountsLoading ? <Loader2 className="h-6 w-6 animate-spin opacity-20" /> : counts.report}
-                  <span className="text-xs font-normal ml-1 opacity-40">件</span>
-                </p>
-              </CardContent>
-            </Card>
+        <div className="grid grid-cols-2 gap-0 bg-paper-warm border border-rule">
+          <Link href="/report" className="block p-5 border-r border-rule hover:bg-paper transition-colors">
+            <div className="flex items-center gap-2 text-ink-faint mb-3">
+              <ClipboardCheck className="h-3.5 w-3.5" />
+              <span className="font-sans text-[10px] tracking-[0.2em]">未報告</span>
+            </div>
+            <p className="font-latin text-[32px] font-medium text-ink leading-none">
+              {isCountsLoading ? <Loader2 className="h-6 w-6 animate-spin text-ink-faint" /> : counts.report}
+              <span className="text-sm text-ink-faint ml-1 font-sans">件</span>
+            </p>
           </Link>
 
-          <Link href="/classify" className="block">
-            <Card className="border-none bg-primary/5 shadow-sm rounded-3xl hover:bg-primary/10 transition-colors">
-              <CardContent className="p-6 space-y-1">
-                <div className="flex items-center gap-2 text-primary/40">
-                  <ListTodo className="h-3.5 w-3.5" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">未分類</span>
-                </div>
-                <p className="text-3xl font-bold tracking-tighter text-primary/80">
-                  {isCountsLoading ? <Loader2 className="h-6 w-6 animate-spin opacity-20" /> : counts.classify}
-                  <span className="text-xs font-normal ml-1 opacity-40">件</span>
-                </p>
-              </CardContent>
-            </Card>
+          <Link href="/classify" className="block p-5 hover:bg-paper transition-colors">
+            <div className="flex items-center gap-2 text-ink-faint mb-3">
+              <ListTodo className="h-3.5 w-3.5" />
+              <span className="font-sans text-[10px] tracking-[0.2em]">未分類</span>
+            </div>
+            <p className="font-latin text-[32px] font-medium text-ink leading-none">
+              {isCountsLoading ? <Loader2 className="h-6 w-6 animate-spin text-ink-faint" /> : counts.classify}
+              <span className="text-sm text-ink-faint ml-1 font-sans">件</span>
+            </p>
           </Link>
         </div>
 
-        <Link href="/setup" className="block">
-          <Card className="border-none shadow-sm bg-white rounded-3xl hover:bg-primary/[0.02] transition-colors">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="w-10 h-10 bg-primary/5 rounded-2xl flex items-center justify-center shrink-0">
-                <Compass className="text-primary/40 h-5 w-5" />
-              </div>
-              <div className="flex-1 min-w-0 space-y-0.5">
-                <p className="text-sm font-bold text-foreground/70">ミッションを編集</p>
-                <p className="text-[10px] text-muted-foreground opacity-60 font-bold uppercase tracking-widest">
-                  Role / Goal / Weekly Focus
-                </p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-primary/20 shrink-0" />
-            </CardContent>
-          </Card>
+        <Link
+          href="/setup"
+          className="block border border-rule bg-paper hover:bg-paper-warm transition-colors"
+        >
+          <div className="p-5 flex items-center gap-4">
+            <div className="w-10 h-10 bg-paper-warm flex items-center justify-center shrink-0 border border-rule">
+              <Compass className="text-ink-faint h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-1">
+              <p className="text-sm font-medium text-ink">ミッションを編集</p>
+              <p className="font-latin italic text-[11px] text-ink-faint tracking-wide">
+                Role · Goal · Weekly Focus
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-ink-faint shrink-0" />
+          </div>
         </Link>
 
         <div className="space-y-3">
@@ -335,9 +331,9 @@ export default function SettingsPage() {
             onClick={handleSyncTrigger}
             disabled={syncStatus === "syncing" || syncStatus === "saving"}
             variant="outline"
-            className="w-full h-14 rounded-2xl gap-3 font-bold bg-white/50 border-primary/5 hover:bg-white transition-all shadow-sm"
+            className="w-full h-14 rounded-none gap-3 font-sans text-xs tracking-[0.15em] bg-paper border-rule text-ink hover:bg-paper-warm"
           >
-            <RefreshCw className={syncStatus === "syncing" || syncStatus === "saving" ? "animate-spin h-4 w-4" : "h-4 w-4 opacity-40"} />
+            <RefreshCw className={syncStatus === "syncing" || syncStatus === "saving" ? "animate-spin h-4 w-4" : "h-4 w-4"} />
             {syncStatus === "saving" ? "保存中..." : "カレンダーを同期する"}
           </Button>
 
@@ -345,9 +341,9 @@ export default function SettingsPage() {
             type="button"
             onClick={handleLogout}
             variant="ghost"
-            className="w-full h-12 rounded-2xl text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 font-bold"
+            className="w-full h-12 rounded-none text-ink-faint hover:text-[hsl(var(--accent))] font-sans text-xs tracking-[0.15em]"
           >
-            <LogOut className="h-4 w-4 mr-2 opacity-40" />
+            <LogOut className="h-4 w-4 mr-2" />
             ログアウト
           </Button>
         </div>

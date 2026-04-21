@@ -67,38 +67,33 @@ export default function LoginPage() {
 
   if (isUserLoading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-white gap-4">
-        <Loader2 className="animate-spin opacity-20 h-8 w-8 text-slate-400" />
+      <div className="flex h-screen flex-col items-center justify-center bg-paper gap-4">
+        <Loader2 className="animate-spin opacity-30 h-8 w-8 text-ink-faint" />
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-10 relative overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none opacity-[0.03] z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500 rounded-full blur-[120px]" />
-      </div>
-
-      <div className="mx-auto max-w-xl w-full space-y-12 text-center relative z-10">
-        <div className="space-y-6">
-          <div className="w-16 h-16 bg-blue-50 rounded-[2rem] flex items-center justify-center mx-auto border border-blue-100/50">
-            <Sparkles className="text-blue-500 h-8 w-8" />
+    <main className="min-h-screen bg-paper flex flex-col items-center justify-center px-6 py-10">
+      <div className="mx-auto max-w-xl w-full space-y-14 text-center">
+        <div className="space-y-5">
+          <div className="font-latin text-[13px] italic text-[hsl(var(--accent))] tracking-[0.2em]">
+            Welcome Back
           </div>
-          <h1 className="text-5xl font-bold text-slate-800 tracking-tight font-headline">DAYS</h1>
-          <p className="text-lg leading-relaxed text-slate-500 font-medium">
+          <h1 className="text-5xl font-headline font-semibold text-ink tracking-wide">DAYS</h1>
+          <p className="text-[15px] leading-[2] text-ink-soft max-w-md mx-auto">
             予定を振り返り、<br />
-            時間の使い方を優しく整える場所。
+            時間の使い方を、そっと整える場所。
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {isPreviewMode ? (
             <button
               type="button"
               onClick={handlePreviewBypass}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-6 py-5 text-lg font-bold text-white transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 bg-ink px-6 py-5 text-base font-sans font-medium text-paper tracking-[0.2em] border border-ink transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
             >
               {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <ArrowRight className="h-5 w-5" />}
               プレビューモードで開始
@@ -108,7 +103,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 rounded-2xl bg-blue-500 px-6 py-5 text-lg font-bold text-white transition-all hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 bg-ink px-6 py-5 text-base font-sans font-medium text-paper tracking-[0.2em] border border-ink transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
             >
               {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <LogIn className="h-5 w-5" />}
               Googleでログイン
@@ -116,27 +111,28 @@ export default function LoginPage() {
           )}
 
           {errorMessage && (
-            <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-xs font-bold text-red-600 whitespace-pre-wrap">
+            <div className="border border-[hsl(var(--accent))] bg-paper-warm px-4 py-3 text-xs text-[hsl(var(--accent))] leading-relaxed whitespace-pre-wrap text-left">
               {errorMessage}
             </div>
           )}
 
-          <a
-            href="/"
-            className="block pt-2 text-[10px] uppercase tracking-[0.3em] font-bold text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            ← DAYSについて
-          </a>
-
-          <p className="pt-4 text-[10px] text-slate-400 leading-relaxed">
-            ログインすることで、
-            <a href="/privacy" className="underline hover:text-slate-600">プライバシーポリシー</a>
-            に同意したものとみなされます。
-          </p>
+          <div className="space-y-3 pt-4">
+            <a
+              href="/"
+              className="block font-sans text-[11px] uppercase tracking-[0.3em] text-ink-faint hover:text-ink transition-colors"
+            >
+              ← DAYSについて
+            </a>
+            <p className="text-[11px] text-ink-faint leading-relaxed">
+              ログインすることで、
+              <a href="/privacy" className="underline underline-offset-2 text-[hsl(var(--accent))] hover:text-ink">プライバシーポリシー</a>
+              に同意したものとみなされます。
+            </p>
+          </div>
         </div>
 
-        <div className="pt-8 opacity-20">
-          <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-slate-400">
+        <div className="pt-4">
+          <p className="font-sans text-[10px] uppercase tracking-[0.4em] text-ink-faint opacity-50">
             Time Management Coach
           </p>
         </div>
