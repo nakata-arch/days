@@ -308,12 +308,20 @@ export default function ReportPage() {
       toast({ variant: "destructive", title: "保存に失敗しました", description: err.message });
     });
 
-    // Google Calendar の説明欄にタグを書き戻し（fire-and-forget）
+    // Google Calendar の説明欄にタグを書き戻し（失敗時のみトースト）
     patchReportDescription(
       eventToUpdate.googleEventId || eventToUpdate.id,
       status,
       eventToUpdate.description
-    );
+    ).then((result) => {
+      if (!result.ok) {
+        toast({
+          variant: "destructive",
+          title: "Googleカレンダーに反映できませんでした",
+          description: result.message ?? "",
+        });
+      }
+    });
   };
 
   if (isUserLoading) {

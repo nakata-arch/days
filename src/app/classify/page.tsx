@@ -18,6 +18,7 @@ import { patchQuadrantColor } from "@/lib/calendar-writeback";
 import Link from "next/link";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 type ExitDirection = { x: number; y: number };
 
@@ -155,6 +156,7 @@ function SwipeCard({
 export default function ClassifyPage() {
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [recentClassified, setRecentClassified] = useState<AppEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -246,8 +248,16 @@ export default function ClassifyPage() {
       );
     });
 
-    // Google Calendar 側の色を書き戻し（fire-and-forget）
-    patchQuadrantColor(event.googleEventId || event.id, category);
+    // Google Calendar 側の色を書き戻し（失敗時のみトースト）
+    patchQuadrantColor(event.googleEventId || event.id, category).then((result) => {
+      if (!result.ok) {
+        toast({
+          variant: "destructive",
+          title: "Googleカレンダーに反映できませんでした",
+          description: result.message ?? "",
+        });
+      }
+    });
   };
 
   if (isUserLoading) {

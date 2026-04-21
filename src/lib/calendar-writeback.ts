@@ -28,6 +28,10 @@ const REPORT_LABEL: Record<ReportStatus, string> = {
 // 既存の [DAYS] タグを末尾から剥がすための正規表現
 const DAYS_TAG_REGEX = /\n*\[DAYS\][\s\S]*$/;
 
+export type WritebackResult =
+  | { ok: true }
+  | { ok: false; reason: "NO_TOKEN" | "AUTH_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "RATE_LIMITED" | "OTHER"; message?: string };
+
 function getCachedToken(): string | null {
   if (typeof window === "undefined") return null;
   return sessionStorage.getItem(CALENDAR_TOKEN_KEY);
@@ -37,11 +41,10 @@ async function patchGoogleEvent(
   googleEventId: string,
   patch: Record<string, unknown>,
   calendarId: string = "primary"
-): Promise<void> {
+): Promise<WritebackResult> {
   const token = getCachedToken();
   if (!token) {
-    console.warn("calendar-writeback: no access token, skipping", { googleEventId });
-    return;
+    return { ok: false, reason: "NO_TOKEN", message: "アクセストークンが未取得です。設定画面で同期してください。" };
   }
   try {
     const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
@@ -55,40 +58,55 @@ async function patchGoogleEvent(
       },
       body: JSON.stringify(patch),
     });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      console.warn("calendar-writeback: patch failed", {
-        status: res.status,
-        error: body?.error?.message,
-        googleEventId,
-      });
-      if (res.status === 401) {
-        // 期限切れトークンは破棄（次回同期時にユーザーが再取得）
-        sessionStorage.removeItem(CALENDAR_TOKEN_KEY);
-      }
+    if (res.ok) return { ok: true };
+
+    const body = await res.json().catch(() => ({}));
+    const message = body?.error?.message;
+    console.warn("calendar-writeback: patch failed", { status: res.status, message });
+
+    if (res.status === 401) {
+      sessionStorage.removeItem(CALENDAR_TOKEN_KEY);
+      return { ok: false, reason: "AUTH_EXPIRED", message: "認証が切れました。設定画面で再同期してください。" };
     }
-  } catch (e) {
+    if (res.status === 403) {
+      return {
+        ok: false,
+        reason: "FORBIDDEN",
+        message: "書き込み権限がありません。設定 → カレンダー同期で権限を付与してください（招待された予定は変更不可）。",
+      };
+    }
+    if (res.status === 404) {
+      return { ok: false, reason: "NOT_FOUND", message: "Google Calendar 上にこの予定が見つかりません。" };
+    }
+    if (res.status === 429) {
+      return { ok: false, reason: "RATE_LIMITED", message: "一時的にリクエスト過多です。少し待って再試行してください。" };
+    }
+    return { ok: false, reason: "OTHER", message: message || `エラー(${res.status})` };
+  } catch (e: any) {
     console.warn("calendar-writeback: patch error", e);
+    return { ok: false, reason: "OTHER", message: e?.message || "ネットワークエラー" };
   }
 }
 
 export async function patchQuadrantColor(
   googleEventId: string,
   category: QuadrantCategory
-): Promise<void> {
+): Promise<WritebackResult> {
   const colorId = QUADRANT_COLOR_ID[category];
-  if (!colorId || !googleEventId) return;
-  await patchGoogleEvent(googleEventId, { colorId });
+  if (!colorId || !googleEventId) {
+    return { ok: false, reason: "NOT_FOUND", message: "イベントIDまたはカラーが不正です。" };
+  }
+  return patchGoogleEvent(googleEventId, { colorId });
 }
 
 export async function patchReportDescription(
   googleEventId: string,
   status: ReportStatus,
   existingDescription: string | undefined
-): Promise<void> {
-  if (!googleEventId) return;
+): Promise<WritebackResult> {
+  if (!googleEventId) return { ok: false, reason: "NOT_FOUND" };
   const label = REPORT_LABEL[status];
-  if (!label) return;
+  if (!label) return { ok: false, reason: "NOT_FOUND" };
 
   const today = new Date().toISOString().slice(0, 10);
   const tag = `[DAYS] ${label} (${today})`;
@@ -96,5 +114,5 @@ export async function patchReportDescription(
   const base = (existingDescription || "").replace(DAYS_TAG_REGEX, "").trimEnd();
   const newDescription = base ? `${base}\n\n${tag}` : tag;
 
-  await patchGoogleEvent(googleEventId, { description: newDescription });
+  return patchGoogleEvent(googleEventId, { description: newDescription });
 }
