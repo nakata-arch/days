@@ -18,10 +18,12 @@ import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebas
 import { AppEvent } from "@/lib/types";
 import { Navigation } from "@/components/Navigation";
 import { Loader2, ClipboardCheck, ListTodo, Clock, LogIn, ArrowRight } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/provider";
 
 export default function TodayPage() {
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
+  const { t, locale } = useTranslation();
 
   const eventsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -80,12 +82,12 @@ export default function TodayPage() {
   if (!user) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-paper p-8 text-center gap-6">
-        <p className="text-sm text-ink">ログインが必要です</p>
+        <p className="text-sm text-ink">{t("common.loginRequired")}</p>
         <Link
           href="/login"
           className="inline-flex items-center gap-2 bg-ink text-paper px-6 py-3 font-sans text-xs tracking-[0.15em] hover:opacity-90"
         >
-          <LogIn className="h-4 w-4" /> ログイン画面へ
+          <LogIn className="h-4 w-4" /> {t("common.loginButton")}
         </Link>
       </div>
     );
@@ -99,19 +101,17 @@ export default function TodayPage() {
         <div className="font-latin text-[18px] font-medium tracking-[0.35em]">DAYS</div>
         <div className="font-sans text-[11px] tracking-[0.15em] text-ink-faint">
           {format(today, "yyyy.MM.dd").toUpperCase()} ·{" "}
-          {format(today, "E", { locale: ja }).toUpperCase()}
+          {format(today, "E", { locale: locale === "ja" ? ja : undefined }).toUpperCase()}
         </div>
       </header>
 
       <main className="max-w-[720px] w-full mx-auto px-6 pt-10 space-y-12">
         <div>
           <div className="font-latin italic text-[13px] text-[hsl(var(--accent))] tracking-[0.2em] mb-3">
-            Today
+            {t("today.kicker")}
           </div>
-          <h1 className="text-3xl font-headline font-semibold text-ink mb-2">今日</h1>
-          <p className="text-[14px] text-ink-soft leading-relaxed">
-            終わった予定を振り返り、これからの予定を整える。
-          </p>
+          <h1 className="text-3xl font-headline font-semibold text-ink mb-2">{t("today.title")}</h1>
+          <p className="text-[14px] text-ink-soft leading-relaxed">{t("today.subtitle")}</p>
         </div>
 
         {/* 報告 */}
@@ -121,9 +121,9 @@ export default function TodayPage() {
               <ClipboardCheck className="h-4 w-4 text-ink-faint" />
               <div>
                 <div className="font-latin italic text-[12px] text-[hsl(var(--accent))] tracking-[0.15em]">
-                  I · Report
+                  {t("today.reportLabel")}
                 </div>
-                <h2 className="text-base font-headline font-semibold text-ink">報告</h2>
+                <h2 className="text-base font-headline font-semibold text-ink">{t("today.reportTitle")}</h2>
               </div>
             </div>
             <span className="font-latin text-[28px] font-medium text-ink leading-none">
@@ -134,17 +134,17 @@ export default function TodayPage() {
             {reportCount > 0 ? (
               <>
                 <p className="text-[13px] text-ink-soft leading-relaxed mb-4">
-                  過去の予定で報告されていないものが {reportCount} 件あります。
+                  {t("today.reportHint", { n: reportCount })}
                 </p>
                 <Link
                   href="/report"
                   className="inline-flex items-center gap-2 bg-ink text-paper px-5 py-3 font-sans text-xs tracking-[0.15em] hover:opacity-90"
                 >
-                  報告する <ArrowRight className="h-3.5 w-3.5" />
+                  {t("today.reportButton")} <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </>
             ) : (
-              <p className="text-[13px] text-ink-faint italic">未報告の予定はありません。</p>
+              <p className="text-[13px] text-ink-faint italic">{t("today.reportEmpty")}</p>
             )}
           </div>
         </section>
@@ -156,9 +156,9 @@ export default function TodayPage() {
               <ListTodo className="h-4 w-4 text-ink-faint" />
               <div>
                 <div className="font-latin italic text-[12px] text-[hsl(var(--accent))] tracking-[0.15em]">
-                  II · Classify
+                  {t("today.classifyLabel")}
                 </div>
-                <h2 className="text-base font-headline font-semibold text-ink">分類</h2>
+                <h2 className="text-base font-headline font-semibold text-ink">{t("today.classifyTitle")}</h2>
               </div>
             </div>
             <span className="font-latin text-[28px] font-medium text-ink leading-none">
@@ -169,17 +169,17 @@ export default function TodayPage() {
             {classifyCount > 0 ? (
               <>
                 <p className="text-[13px] text-ink-soft leading-relaxed mb-4">
-                  今日以降の予定で未分類のものが {classifyCount} 件あります。
+                  {t("today.classifyHint", { n: classifyCount })}
                 </p>
                 <Link
                   href="/classify"
                   className="inline-flex items-center gap-2 bg-ink text-paper px-5 py-3 font-sans text-xs tracking-[0.15em] hover:opacity-90"
                 >
-                  分類する <ArrowRight className="h-3.5 w-3.5" />
+                  {t("today.classifyButton")} <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </>
             ) : (
-              <p className="text-[13px] text-ink-faint italic">分類待ちの予定はありません。</p>
+              <p className="text-[13px] text-ink-faint italic">{t("today.classifyEmpty")}</p>
             )}
           </div>
         </section>
@@ -190,14 +190,14 @@ export default function TodayPage() {
             <Clock className="h-4 w-4 text-ink-faint" />
             <div>
               <div className="font-latin italic text-[12px] text-[hsl(var(--accent))] tracking-[0.15em]">
-                III · Today
+                {t("today.todayLabel")}
               </div>
-              <h2 className="text-base font-headline font-semibold text-ink">今日の予定</h2>
+              <h2 className="text-base font-headline font-semibold text-ink">{t("today.todayTitle")}</h2>
             </div>
           </div>
           {todayEvents.length === 0 ? (
             <p className="text-[13px] text-ink-faint italic py-6 text-center border border-dashed border-rule">
-              今日の予定はありません。
+              {t("today.todayEmpty")}
             </p>
           ) : (
             <ul className="border border-rule bg-paper divide-y divide-rule">

@@ -25,6 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { isBefore, parseISO, startOfToday } from "date-fns";
 import { CALENDAR_TOKEN_KEY } from "@/lib/calendar-writeback";
+import { useTranslation } from "@/lib/i18n/provider";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -32,6 +34,7 @@ export default function SettingsPage() {
   const db = useFirestore();
   const { user, isUserLoading, isPreviewMode } = useUser();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "saving" | "success" | "failed">("idle");
 
@@ -293,7 +296,7 @@ export default function SettingsPage() {
     <div className="flex flex-col min-h-screen bg-paper pb-32">
       <header className="px-6 pt-10 pb-6 border-b border-rule flex justify-between items-center">
         <div className="font-latin text-[18px] font-medium tracking-[0.35em]">DAYS</div>
-        <div className="font-sans text-[11px] tracking-[0.15em] text-ink-faint">SETTINGS</div>
+        <div className="font-sans text-[11px] tracking-[0.15em] text-ink-faint">{t("settings.header")}</div>
       </header>
 
       <main className="max-w-[720px] w-full mx-auto px-6 pt-10 space-y-10">
@@ -314,22 +317,22 @@ export default function SettingsPage() {
           <Link href="/report" className="block p-5 border-r border-rule hover:bg-paper transition-colors">
             <div className="flex items-center gap-2 text-ink-faint mb-3">
               <ClipboardCheck className="h-3.5 w-3.5" />
-              <span className="font-sans text-[10px] tracking-[0.2em]">未報告</span>
+              <span className="font-sans text-[10px] tracking-[0.2em]">{t("settings.unreported")}</span>
             </div>
             <p className="font-latin text-[32px] font-medium text-ink leading-none">
               {isCountsLoading ? <Loader2 className="h-6 w-6 animate-spin text-ink-faint" /> : counts.report}
-              <span className="text-sm text-ink-faint ml-1 font-sans">件</span>
+              <span className="text-sm text-ink-faint ml-1 font-sans">{t("settings.unit")}</span>
             </p>
           </Link>
 
           <Link href="/classify" className="block p-5 hover:bg-paper transition-colors">
             <div className="flex items-center gap-2 text-ink-faint mb-3">
               <ListTodo className="h-3.5 w-3.5" />
-              <span className="font-sans text-[10px] tracking-[0.2em]">未分類</span>
+              <span className="font-sans text-[10px] tracking-[0.2em]">{t("settings.unclassified")}</span>
             </div>
             <p className="font-latin text-[32px] font-medium text-ink leading-none">
               {isCountsLoading ? <Loader2 className="h-6 w-6 animate-spin text-ink-faint" /> : counts.classify}
-              <span className="text-sm text-ink-faint ml-1 font-sans">件</span>
+              <span className="text-sm text-ink-faint ml-1 font-sans">{t("settings.unit")}</span>
             </p>
           </Link>
         </div>
@@ -343,9 +346,9 @@ export default function SettingsPage() {
               <Compass className="text-ink-faint h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0 space-y-1">
-              <p className="text-sm font-medium text-ink">ミッションを編集</p>
+              <p className="text-sm font-medium text-ink">{t("settings.editMission")}</p>
               <p className="font-latin italic text-[11px] text-ink-faint tracking-wide">
-                Role · Goal · Weekly Focus
+                {t("settings.editMissionSubtitle")}
               </p>
             </div>
             <ChevronRight className="h-4 w-4 text-ink-faint shrink-0" />
@@ -361,8 +364,10 @@ export default function SettingsPage() {
             className="w-full h-14 rounded-none gap-3 font-sans text-xs tracking-[0.15em] bg-paper border-rule text-ink hover:bg-paper-warm"
           >
             <RefreshCw className={syncStatus === "syncing" || syncStatus === "saving" ? "animate-spin h-4 w-4" : "h-4 w-4"} />
-            {syncStatus === "saving" ? "保存中..." : "カレンダーを同期する"}
+            {syncStatus === "saving" ? t("common.saving") : t("settings.syncButton")}
           </Button>
+
+          <LanguageSwitcher />
 
           <Button
             type="button"
@@ -371,7 +376,7 @@ export default function SettingsPage() {
             className="w-full h-12 rounded-none text-ink-faint hover:text-[hsl(var(--accent))] font-sans text-xs tracking-[0.15em]"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            ログアウト
+            {t("settings.logout")}
           </Button>
         </div>
       </main>

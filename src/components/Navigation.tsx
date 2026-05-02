@@ -5,16 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, Sun, Settings, ClipboardCheck, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/provider";
 
 export function Navigation() {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   const navItems = [
-    { href: "/today", label: "今日", icon: Sun },
-    { href: "/report", label: "報告", icon: ClipboardCheck },
-    { href: "/classify", label: "分類", icon: ListTodo },
-    { href: "/review", label: "レビュー", icon: BarChart3 },
-    { href: "/settings", label: "設定", icon: Settings },
+    { href: "/today", labelKey: "nav.today", icon: Sun },
+    { href: "/report", labelKey: "nav.report", icon: ClipboardCheck },
+    { href: "/classify", labelKey: "nav.classify", icon: ListTodo },
+    { href: "/review", labelKey: "nav.review", icon: BarChart3 },
+    { href: "/settings", labelKey: "nav.settings", icon: Settings },
   ];
 
   return (
@@ -34,7 +36,7 @@ export function Navigation() {
             >
               <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2px]")} />
               <span className="text-[9px] font-sans tracking-[0.05em] mt-1 whitespace-nowrap">
-                {item.label}
+                {t(item.labelKey)}
               </span>
             </Link>
           );
